@@ -51,24 +51,26 @@ export function candidates(need, limit = 14) {
 }
 
 // Deterministic cart: one hero piece per slot, within budget. Used as the fallback and to validate LLM picks.
+// Dress and shoes must suit the occasion; if the budget is tight, a cheaper dress is chosen so shoes still fit.
 export function buildCartDeterministic(need) {
   const pool = candidates(need, 40)
-  const slots = [
-    ['dresses', 'The hero piece: matches the occasion and the palette'],
-    ['shoes', 'Block or strappy heel that works on lawns and terraces'],
-    ['outerwear', 'Light layer for the evening chill after sunset'],
-    ['bags', 'Small enough to carry all evening'],
-    ['jewelry', 'Finishing touch in a warm metal'],
-  ]
+  const suits = (p) => !need.occasion || p.tags.includes(need.occasion) || p.tags.includes('evening') || p.tags.includes('earth tone')
   const budget = need.budget || 600
+  const dresses = pool.filter((p) => p.category === 'dresses' && suits(p))
+  const shoes = pool.filter((p) => p.category === 'shoes' && suits(p) && !p.tags.includes('sneaker'))
+  let dress = null, shoe = null
+  for (const d of dresses) {
+    const s = shoes.find((x) => d.price + x.price <= budget)
+    if (s) { dress = d; shoe = s; break }
+  }
   const items = []
   let total = 0
-  for (const [cat, why] of slots) {
+  const add = (p, why) => { items.push({ id: p.id, name: p.name, price: p.price, size: sizeFor(p, need), reason: why }); total += p.price }
+  if (dress) add(dress, 'The hero piece: matches the occasion and the palette')
+  if (shoe) add(shoe, 'Comfortable heel that works on lawns and terraces')
+  for (const [cat, why] of [['outerwear', 'Light layer for the evening chill after sunset'], ['bags', 'Small enough to carry all evening'], ['jewelry', 'Finishing touch in a warm metal']]) {
     const pick = pool.find((p) => p.category === cat && total + p.price <= budget)
-    if (pick) {
-      items.push({ id: pick.id, name: pick.name, price: pick.price, size: sizeFor(pick, need), reason: why })
-      total += pick.price
-    }
+    if (pick) add(pick, why)
   }
   return { items, total }
 }

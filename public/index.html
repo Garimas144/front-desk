@@ -224,10 +224,12 @@ function steps(v) {
       ['Shown out', v.status === 'blocked' ? 'bad' : '']]
   }
   const a = v.approval?.status
-  return [['Knocked', 'done'], ['Let in', 'done'], ['Checked', checked ? 'done' : 'now'],
-    ['Cart built', v.cart ? 'done' : checked ? 'now' : ''],
-    ['Owner approval', a === 'pending' ? 'now' : a ? 'done' : ''],
-    ['Order', v.order ? 'done' : '']]
+  const out = [['Knocked', 'done'], ['Let in', 'done'], ['Checked', checked ? 'done' : 'now'],
+    ['Cart built', v.cart || v.declined ? 'done' : checked ? 'now' : ''],
+    ['Owner approval', a === 'pending' ? 'now' : a || v.declined ? 'done' : '']]
+  if (v.declined) out.push(['Declined', 'bad'], ['Alternative', v.cart?.alt ? 'done' : 'now'])
+  out.push(['Order', v.order ? 'done' : ''])
+  return out
 }
 
 
@@ -312,11 +314,12 @@ function render() {
 
   // Cart
   let html = ''
+  if (v.declined) html += `<div class="approval denied" style="margin:0 0 12px"><b>You declined the $${v.declined.total} cart</b>${v.cart?.alt ? 'The stylist found an alternative under $400, no sign-off needed.' : 'The stylist is putting together an alternative under $400…'}</div>`
   if (v.cart) {
-    html += v.cart.items.map((i) => `<div class="item${prev.cart ? '' : ' new'}"><span class="swatch" style="background:${swatch(i.name)}"></span><span class="name">${esc(i.name)}<span class="size">${esc(i.size)}</span></span><span class="price">$${i.price}</span><span class="why">${esc(i.reason)}</span></div>`).join('')
+    html += v.cart.items.map((i) => `<div class="item${prev.cart === (v.cart.alt ? 'alt' : 'first') ? '' : ' new'}"><span class="swatch" style="background:${swatch(i.name)}"></span><span class="name">${esc(i.name)}<span class="size">${esc(i.size)}</span></span><span class="price">$${i.price}</span><span class="why">${esc(i.reason)}</span></div>`).join('')
     html += `<div class="total"><span>Total</span><span>$${v.cart.total}</span></div>`
-    html += `<div class="by">Picked by the Stylist${v.cart.by === 'zoowork' ? ' (ZooWork)' : ''}</div>`
-  } else if (v.status !== 'blocked') html += `<p class="empty">The stylist's picks will appear here.</p>`
+    html += `<div class="by">${v.cart.alt ? 'Alternative picked' : 'Picked'} by the Stylist${v.cart.by === 'zoowork' ? ' (ZooWork)' : ''}</div>`
+  } else if (v.status !== 'blocked' && !v.declined) html += `<p class="empty">The stylist's picks will appear here.</p>`
   const a = v.approval
   if (a?.status === 'pending') html += `<div class="approval${prev.approval === 'pending' ? '' : ' new'}"><b>Needs your approval</b>${esc(a.reasons.join('; '))}<div class="row"><button class="pill solid" onclick="decide('${v.roomId}','approve')">Approve $${a.total}</button><button class="pill ghost" onclick="decide('${v.roomId}','deny')">Decline</button></div></div>`
   else if (a?.status === 'approved') html += `<div class="approval done"><b>Approved</b>by ${esc(a.by)}</div>`
@@ -324,7 +327,7 @@ function render() {
   if (v.order) html += `<div class="paid"><span class="stamp allow${prev.paid ? '' : ' fresh'}">Paid</span><p>Order ${esc(v.order.id)} · $${v.order.total} · test mode, no real payment</p></div>`
   if (v.status === 'blocked') html += `<div class="shownout"><b style="font:400 18px var(--serif)">Visitor shown out</b><div style="margin-top:4px">Removed from the room and contact revoked. The reasons are saved in the Band room log.</div></div>`
   $('cart').innerHTML = html
-  seen[v.roomId] = { feed: v.feed.length, cart: !!v.cart, paid: !!v.order, approval: a?.status || null }
+  seen[v.roomId] = { feed: v.feed.length, cart: v.cart ? (v.cart.alt ? 'alt' : 'first') : false, paid: !!v.order, approval: a?.status || null }
 }
 </script>
 </body>

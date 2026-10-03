@@ -10,8 +10,9 @@ for (let i = 1; i <= N; i++) {
   let t = Date.now()
   await api('/api/run/legit', 'POST')
   const pending = await waitFor((s) => s.visits.find((v) => v.approval?.status === 'pending'), 120000)
-  if (pending) await api(`/api/approve/${pending.roomId}`, 'POST')
-  const legit = await waitFor((s) => s.visits.find((v) => v.order), 60000)
+  // DECLINE=1: decline the first cart and expect the store to offer (and sell) an alternative
+  if (pending) await api(`/api/${process.env.DECLINE === '1' ? 'deny' : 'approve'}/${pending.roomId}`, 'POST')
+  const legit = await waitFor((s) => s.visits.find((v) => v.order), 120000)
   const lt = (Date.now() - t) / 1000
   await sleep(6000)
   t = Date.now()

@@ -208,12 +208,15 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
       if (!j.lines.length) return say(fd, roomId, v.shopper.handle, `I couldn't match those items. Could you name the pieces you're interested in?`)
       return say(fd, roomId, v.shopper.handle, `Here you go:\n${j.lines.join('\n')}`)
     }
-    v.cart = j.cart
+    v.cart = { ...j.cart, alt: !!j.alt }
     v.trust.cartActions++
-    dash.update(roomId, { cart: j.cart })
+    dash.update(roomId, { cart: v.cart, status: 'open' })
     const lines = j.cart.items.map((i) => `• ${i.name} (${i.size}) $${i.price}: ${i.reason}`).join('\n')
+    const intro = j.alt
+      ? `Here's an alternative under $${policy.owner_approval.cart_total_above_usd}, so no owner sign-off is needed:`
+      : `Our stylist put this together:`
     await say(fd, roomId, v.shopper.handle,
-      `Our stylist put this together:\n${lines}\nCart total: $${j.cart.total}. Reply "check out" to place the order (test mode).`)
+      `${intro}\n${lines}\nCart total: $${j.cart.total}. Reply "check out" to place the order (test mode).`)
   }
 
   async function startCheckout(roomId, v) {
@@ -241,13 +244,26 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
     if (!v?.approval || v.approval.status !== 'pending') return false
     v.approval = { ...v.approval, status: decision, by, decidedAt: Date.now() }
     dash.update(roomId, { approval: v.approval })
-    dash.feed(roomId, { from: 'Owner', fromSide: 'owner', text: `${decision === 'approved' ? 'Approved' : 'Denied'} via ${by}.` })
+    dash.feed(roomId, { from: 'Owner', fromSide: 'owner', text: `${decision === 'approved' ? 'Approved' : 'Declined'} via ${by}.` })
     if (decision === 'approved') await placeOrder(roomId, v, v.approval.total, by)
-    else {
-      dash.update(roomId, { status: 'denied' })
-      await say(fd, roomId, v.shopper.handle, `The owner couldn't approve this order. I can rebuild the cart under $${policy.owner_approval.cart_total_above_usd} if that helps.`)
-    }
+    else offerAlternative(roomId, v).catch((e) => console.error('[frontdesk] alternative failed:', e.message))
     return true
+  }
+
+  // Declined by the owner: keep the sale alive by asking the Stylist for a cart that fits within policy
+  // (under the approval threshold), so it can be placed without another sign-off.
+  async function offerAlternative(roomId, v) {
+    const cap = policy.owner_approval.cart_total_above_usd
+    const declinedTotal = v.approval.total
+    v.declined = { total: declinedTotal, by: v.approval.by, at: Date.now() }
+    v.cart = null
+    v.approval = null
+    dash.update(roomId, { declined: v.declined, approval: null, cart: null, status: 'finding alternative' })
+    await say(fd, roomId, v.shopper.handle,
+      `The owner couldn't approve the $${declinedTotal} order. I'm asking our stylist for an alternative under $${cap} that I can place right away.`)
+    const id = job({ type: 'cart', roomId, alt: true, declinedTotal, text: v.trust.statedIntent, need: { ...v.trust.need, budget: cap } })
+    await say(fd, roomId, cat.handle,
+      `[${id}] The owner declined the $${declinedTotal} cart. Please build an alternative for ${v.shopper.name} under $${cap}.`, { internal: true })
   }
 
   // ---------- @trust ----------
@@ -274,7 +290,7 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
       return say(cat, roomId, fd.handle, `[${id}] Prices found for ${items.length} item(s).`, { internal: true })
     }
     const cart = await buildCart(roomId, j.need?.occasion ? j.need : { ...parseNeed(j.text), ...j.need }, j.text)
-    const id = job({ type: 'cart', cart })
+    const id = job({ type: 'cart', cart, alt: j.alt })
     await say(cat, roomId, fd.handle,
       `[${id}] Cart ready: ${cart.items.map((i) => i.name).join(', ')}. Total $${cart.total}.`, { internal: true })
   })
@@ -284,7 +300,7 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
     const cands = candidates(need)
     const raw = await ask('catalog', roomId,
       `Shopper need: <<<${clip(text, 600)}>>>\nParsed: size ${need.size || '?'}, shoe ${need.shoe || '?'}, budget $${need.budget || '?'}, occasion ${need.occasion || '?'}, earth tones ${need.earth ? 'yes' : 'no'}.
-Pick a dress, shoes, a light layer, and one accessory. Use most of the budget without going over it.
+Always pick one dress and one pair of shoes. Then add a light layer and an accessory only if they still fit. The total must not exceed the budget; use as much of it as you can.
 Reply with ONLY JSON, no prose: {"items":[{"id":"MP-1xx","reason":"<15 words"}]}
 CANDIDATES:\n${cands.map((p) => `${p.id} | ${p.name} | ${p.category} | $${p.price} | ${p.colors.join('/')} | ${p.tags.join(', ')}`).join('\n')}`,
       { timeoutMs: 20_000 })

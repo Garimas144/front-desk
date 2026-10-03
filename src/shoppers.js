@@ -65,9 +65,19 @@ export function createShoppers({ transport, frontdeskHandle, log = console.log }
     await sleep(1200)
     // Fixed confirmation wording so checkout routing never depends on model phrasing.
     await L.send('This looks perfect for a Napa vineyard wedding. Please check out.')
-    let r = await L.next(90_000)
-    while (r && !/Order confirmed/i.test(r)) r = await L.next(180_000)
-    if (r) { await sleep(800); await L.send('Thank you! My customer will love it.') }
+    // Wait for the order. If the owner declines, the store may offer a new cart: accept it if it fits the budget.
+    let r = await L.next(180_000)
+    for (let offers = 0; r && !/Order confirmed/i.test(r) && offers < 3; ) {
+      const alt = /Cart total:\s*\$(\d+)/.exec(r)
+      if (alt) {
+        offers++
+        if (Number(alt[1]) > 550) { await L.send('That is still over budget, sorry.'); break }
+        await sleep(1200)
+        await L.send('That alternative works for my customer. Please check out.')
+      }
+      r = await L.next(180_000)
+    }
+    if (r && /Order confirmed/i.test(r)) { await sleep(800); await L.send('Thank you! My customer will love it.') }
     log('[legit] done')
   }
 
