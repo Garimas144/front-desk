@@ -136,6 +136,29 @@
   @keyframes bounce { 0% { left: -10px; opacity: 0; } 15% { opacity: 1; } 50% { left: 38%; } 100% { left: -10px; opacity: 0; } }
   @keyframes knock { 0%,100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
   @keyframes talk { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+  .line { display: flex; gap: 12px; margin-bottom: 14px; cursor: pointer; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; font-size: 13px; }
+  .avatar.visitor { background: #3B3A36; color: #F4F1EA; }
+  .avatar.store { background: var(--pine); color: var(--cream); font-family: var(--serif); }
+  .avatar.owner { background: var(--cream); color: var(--cream-ink); font-family: var(--serif); }
+  .line .body { min-width: 0; flex: 1; }
+  .line .head { font-size: 16px; line-height: 1.4; }
+  .line .full { display: none; margin-top: 6px; font-size: 14px; color: var(--muted); white-space: pre-wrap; background: var(--paper); border-radius: 10px; padding: 8px 10px; }
+  .line.open .full { display: block; }
+  .line.speaking .head { color: var(--pine); }
+  .line.speaking .avatar { box-shadow: 0 0 0 3px var(--pine-soft); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .tag { font-size: 13px; background: #F1EEE8; padding: 3px 10px; border-radius: 999px; }
+  .look { display: flex; align-items: center; gap: 6px; margin-top: 6px; background: var(--paper); border-radius: 12px; padding: 8px 12px; }
+  .look .sw { width: 14px; height: 18px; border-radius: 4px; }
+  .look .n { font-size: 13px; color: var(--muted); flex: 1; margin-left: 4px; }
+  .event { font-size: 13px; color: var(--muted); text-align: center; margin: 4px 0 14px; }
+  .event.bad { color: var(--bad-ink); }
+  .quiet { font-size: 13px; color: var(--faint); margin: -4px 0 14px 44px; }
+  .quiet .dot { width: 6px; height: 6px; }
+  .voicehint { font-size: 12px; color: var(--cream-ink); background: var(--cream); border-radius: 999px; padding: 4px 10px; display: none; }
+  .voicehint.show { display: inline-block; }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes stampIn { 0% { opacity: 0; transform: scale(1.8) rotate(-5deg); } 100% { opacity: 1; } }
   @media (max-width: 1000px) { .door { grid-template-columns: 1fr; gap: 10px; } .rail, .packet { display: none; } main { grid-template-columns: 1fr; height: auto; } .card { min-height: 340px; } }
@@ -169,7 +192,7 @@
 <div class="strip" id="strip"><span class="step">Waiting for a visitor</span></div>
 <main>
   <section class="card">
-    <h2>Guest book <label class="toggle"><input type="checkbox" id="notes" checked /> team notes</label></h2>
+    <h2>Guest book <span style="display:flex;gap:10px;align-items:center"><span class="voicehint" id="voicehint">Click anywhere to hear the narration</span><label class="toggle"><input type="checkbox" id="notes" /> team notes</label></span></h2>
     <div class="scroll" id="feed"><p class="empty">The door is open. Waiting for a shopping assistant to knock.</p></div>
   </section>
   <section class="card">
@@ -199,8 +222,8 @@ const SWATCH = [
 ]
 const swatch = (name) => (SWATCH.find(([r]) => r.test(name)) || [0, '#CFC6B6'])[1]
 
-function run(who) { pinned = null; fetch('/api/run/' + who, { method: 'POST' }).then((r) => r.json()).then((r) => { if (!r.ok) alert(r.error || 'Could not start the visitor') }) }
-function reset() { pinned = null; lastStamp = {}; seen = {}; doorSeen = {}; fetch('/api/reset', { method: 'POST' }) }
+function run(who) { pinned = null; narrateFrom = true; synth?.cancel(); fetch('/api/run/' + who, { method: 'POST' }).then((r) => r.json()).then((r) => { if (!r.ok) alert(r.error || 'Could not start the visitor') }) }
+function reset() { pinned = null; lastStamp = {}; seen = {}; doorSeen = {}; spoken = {}; synth?.cancel(); fetch('/api/reset', { method: 'POST' }) }
 function decide(room, d) { fetch(`/api/${d}/${encodeURIComponent(room)}`, { method: 'POST' }) }
 
 new EventSource('/api/events').onmessage = (e) => { state = JSON.parse(e.data); render() }
@@ -270,6 +293,147 @@ function renderDoor(v) {
   if (v) doorSeen[v.roomId] = v.feed.length
 }
 
+// ---------- Guest book summaries ----------
+const firstSentence = (t) => { if (t.replace(/\s+/g, ' ').length <= 100) return t.replace(/\s+/g, ' ').trim(); const m = t.replace(/\s+/g, ' ').match(/^(.+?[.!?])(\s|$)/); const x = (m ? m[1] : t).trim(); return x.length > 110 ? x.slice(0, x.lastIndexOf(' ', 105)) + '…' : x }
+function needTags(t) {
+  const tags = []
+  if (/napa/i.test(t) && /wedding/i.test(t)) tags.push('Napa wedding'); else if (/wedding/i.test(t)) tags.push('Wedding')
+  if (/garden party/i.test(t)) tags.push('Garden party')
+  const sz = t.match(/\bsize ([XSML]{1,2})\b/i); if (sz) tags.push('Size ' + sz[1].toUpperCase())
+  const sh = t.match(/shoe size (\d+)/i); if (sh) tags.push('Shoe ' + sh[1])
+  if (/earth/i.test(t)) tags.push('Earth tones')
+  const b = t.match(/(?:up to|under|budget[^$]*)\$(\d+)/i); if (b) tags.push('Up to $' + b[1])
+  return tags
+}
+function cartFromText(t) {
+  const items = [...t.matchAll(/•\s*(.+?)\s*\(([^)]*)\)\s*\$(\d+)/g)].map((m) => ({ name: m[1], price: +m[3] }))
+  const total = (t.match(/Cart total:\s*\$(\d+)/) || [])[1]
+  return { items, total }
+}
+function headline(f, v) {
+  const t = f.text
+  if (f.fromSide === 'shopper') {
+    const tags = needTags(t)
+    if (tags.length >= 3) return { text: /wedding/i.test(t) ? 'Shopping for a wedding guest outfit' : firstSentence(t), extra: `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` }
+    return { text: firstSentence(t) }
+  }
+  if (/Cart total:/.test(t)) {
+    const c = cartFromText(t)
+    return { text: /alternative/i.test(t) ? 'Here is an alternative under $400' : 'Our stylist put a look together',
+      extra: `<div class="look">${c.items.map((i) => `<span class="sw" style="background:${swatch(i.name)}"></span>`).join('')}<span class="n">${c.items.length} pieces</span><span>$${c.total}</span></div>` }
+  }
+  if (/^Here you go/i.test(t)) { const n = (t.match(/•/g) || []).length; return { text: `Shared prices for ${n} item${n === 1 ? '' : 's'}` } }
+  if (/^Welcome to Marlow/i.test(t)) return { text: 'Welcome to Marlow & Pine. What does your customer need?' }
+  if (/owner's sign-off/i.test(t)) return { text: 'Needs the owner to approve: over $400' }
+  if (/^Approval needed/i.test(t)) return { text: 'Asked the owner to approve the order' }
+  if (/^Order confirmed/i.test(t)) { const m = t.match(/(MP-\d+), \$(\d+)/); return { text: m ? `Order confirmed · ${m[1]} · $${m[2]}` : 'Order confirmed' } }
+  if (/session is closed/i.test(t)) return { text: 'Session closed. Visitor shown out.' }
+  if (/pausing price sharing/i.test(t)) return { text: /full catalog|price list/i.test(t) ? 'We never share the full price list' : 'Paused price sharing: request does not match the stated need' }
+  if (/couldn't approve/i.test(t)) return { text: 'Owner declined. Finding an alternative under $400' }
+  if (/^(Approved|Declined) via/i.test(t)) return { text: t.startsWith('Approved') ? 'Approved the order' : 'Declined the order' }
+  return { text: firstSentence(t) }
+}
+function eventText(f, v) {
+  if (/^Cross-company contact/i.test(f.text)) return `${v.shopper.name} knocked · the door opened`
+  if (/removed .* revoked/i.test(f.text)) return `${v.shopper.name} shown out · contact revoked`
+  return f.text
+}
+function shortNote(f) {
+  if (f.from === 'Marlow Trust') return `Security: ${WORD[f.verdict] || 'checked'}`
+  if (f.from === 'Marlow Catalog') return /Cart ready/i.test(f.text) ? 'Stylist: cart ready' : 'Stylist: prices found'
+  if (/build a cart|alternative/i.test(f.text)) return 'Stylist building a cart'
+  if (/screen this/i.test(f.text)) return 'Security checking'
+  if (/price check/i.test(f.text)) return 'Stylist checking prices'
+  return ''
+}
+
+// ---------- Narration: full sentences, one voice per character ----------
+const synth = window.speechSynthesis
+let voices = [], cast = {}, spoken = {}, speakingIdx = null
+const PREFS = {
+  frontdesk: [/Samantha/, /Ava/, /Allison/, /Google US English/, /en-US/],
+  stylist: [/Moira/, /Karen/, /Serena/, /Google UK English Female/, /en-(IE|AU|GB)/],
+  security: [/Daniel/, /Arthur/, /Google UK English Male/, /en-GB/],
+  owner: [/Aaron/, /Alex/, /Tom/, /Evan/, /en-US/],
+  napa: [/Tessa/, /Nicky/, /Victoria/, /Zira/, /en-(ZA|US)/],
+  bot: [/Fred/, /Ralph/, /Albert/, /Zarvox/, /Trinoids/, /en-US/],
+  narrator: [/Rishi/, /Oliver/, /Lee/, /Reed/, /en-(IN|AU|GB)/],
+}
+const TUNE = { frontdesk: [1, 1.03], stylist: [1.1, 1], security: [0.85, 0.97], owner: [0.9, 1], napa: [1.15, 1.05], bot: [0.7, 1.08], narrator: [1, 0.95] }
+function castVoices() {
+  voices = (synth?.getVoices() || []).filter((v) => /^en/i.test(v.lang))
+  const used = new Set()
+  cast = {}
+  for (const [role, prefs] of Object.entries(PREFS)) {
+    let pick = null
+    for (const re of prefs) { pick = voices.find((v) => (re.test(v.name) || re.test(v.lang)) && !used.has(v.name)); if (pick) break }
+    pick = pick || voices.find((v) => !used.has(v.name)) || voices[0] || null
+    if (pick) used.add(pick.name)
+    cast[role] = pick
+  }
+}
+if (synth) { castVoices(); synth.onvoiceschanged = castVoices }
+
+function roleOf(f, v) {
+  if (f.fromSide === 'system') return 'narrator'
+  if (f.fromSide === 'owner') return 'owner'
+  if (f.fromSide === 'shopper') return /Deal Hunter/i.test(f.from) ? 'bot' : 'napa'
+  if (f.from === 'Marlow Trust') return 'security'
+  if (f.from === 'Marlow Catalog') return 'stylist'
+  return 'frontdesk'
+}
+const money = (t) => t.replace(/\$(\d+)/g, '$1 dollars')
+function speechFor(f, v) {
+  let t = f.text.replace(/^\[J\d+\]\s*/, '')
+  if (f.fromSide === 'system') {
+    if (/^Cross-company contact/i.test(t)) return `${v.shopper.name} knocked on the door, and the front desk let it in.`
+    if (/removed .* revoked/i.test(t)) return `The front desk removed ${v.shopper.name} from the room and locked the door.`
+    return t
+  }
+  if (f.internal) {
+    if (f.from === 'Marlow Trust') {
+      const reasons = t.replace(/^Verdict:\s*\w+\s*·\s*risk \d+\/100\s*·\s*/i, '').replace(/AI judge:/g, 'The AI judge adds:')
+      const risk = (t.match(/risk (\d+)\/100/) || [])[1]
+      return `Security check: ${WORD[f.verdict] || 'checked'}. Risk ${risk} out of 100. ${reasons}`
+    }
+    if (f.from === 'Marlow Catalog') return /Cart ready/i.test(t) ? `I have a look ready: ${t.replace(/^Cart ready:\s*/i, '')}` : t
+    return '' // the front desk's internal hand-offs are shown, not spoken
+  }
+  t = t.replace(/•\s*(.+?)\s*\(([^)]*)\)\s*\$(\d+):\s*/g, (_m, name, size, price) => `${name}, ${/one size|confirm/i.test(size) ? size : 'size ' + size}, ${price} dollars. `)
+       .replace(/•\s*(.+?):\s*\$(\d+)/g, '$1, $2 dollars.')
+       .replace(/\bMP-(\d+)/g, (_m, d) => 'M P ' + d.split('').join(' '))
+       .replace(/\n+/g, ' ')
+  return money(t)
+}
+function sentences(t) { return (t.match(/[^.!?]+[.!?]*/g) || [t]).map((x) => x.trim()).filter(Boolean) }
+
+function narrate(v) {
+  if (!synth || !v) return
+  const key = v.roomId
+  if (spoken[key] === undefined) { spoken[key] = narrateFrom ? 0 : v.feed.length; narrateFrom = false } // don't read old history on page load
+  for (let i = spoken[key]; i < v.feed.length; i++) {
+    const f = v.feed[i]
+    const text = speechFor(f, v)
+    if (!text) continue
+    const role = roleOf(f, v)
+    const [pitch, rate] = TUNE[role] || [1, 1]
+    const parts = sentences(text) // short utterances: some browsers cut off long ones
+    parts.forEach((part, j) => {
+      const u = new SpeechSynthesisUtterance(part)
+      if (cast[role]) u.voice = cast[role]
+      u.pitch = pitch; u.rate = rate
+      if (j === 0) u.onstart = () => { speakingIdx = `${key}:${i}`; document.querySelector(`.line[data-i="${i}"]`)?.classList.add('speaking') }
+      if (j === parts.length - 1) u.onend = () => { document.querySelector(`.line[data-i="${i}"]`)?.classList.remove('speaking'); if (speakingIdx === `${key}:${i}`) speakingIdx = null }
+      synth.speak(u)
+    })
+  }
+  spoken[key] = v.feed.length
+}
+let narrateFrom = false // set when the presenter starts a visit, so that visit is narrated from its first line
+function voiceReady() { const ok = navigator.userActivation ? navigator.userActivation.hasBeenActive : true; $('voicehint').classList.toggle('show', !ok) }
+document.addEventListener('click', voiceReady, { capture: true })
+setTimeout(voiceReady, 300)
+
 function render() {
   $('status').innerHTML = `<span><span class="dot ${state.mode === 'band' ? 'on' : ''}"></span>Band ${state.mode === 'band' ? 'live' : 'simulated'}</span><span><span class="dot ${state.zoowork ? 'on' : ''}"></span>ZooWork ${state.zoowork ? 'on' : 'off'}</span>`
   const visits = state.visits || []
@@ -282,23 +446,40 @@ function render() {
   renderDoor(v)
   if (!v) return
 
-  // Guest book
+  // Guest book: one short headline per message (click for the full text); narration speaks the full sentences.
   const showNotes = $('notes').checked
   const feed = $('feed')
   const nearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 90
   const prev = seen[v.roomId] || { feed: 0, cart: false, paid: false, approval: null }
   const isNew = (i) => (i >= prev.feed ? ' new' : '')
-  feed.innerHTML = v.feed.map((f, i) => {
-    if (f.fromSide === 'system') {
-      const t = f.text.replace(/^Cross-company contact: /, 'Two companies connected on Band: ')
-      return `<div class="entry system${isNew(i)}">${esc(t)}</div>`
+  const out = []
+  let group = []
+  const flush = () => {
+    if (!group.length) return
+    if (showNotes) group.forEach(({ f, i }) => out.push(`<div class="quiet${isNew(i)}"><span class="dot" style="background:${f.verdict ? COLOR[f.verdict] : 'var(--faint)'}"></span>${esc(noteText(f))}</div>`))
+    else {
+      const parts = group.map(({ f }) => shortNote(f)).filter(Boolean)
+      const last = group[group.length - 1]
+      const vd = [...group].reverse().find(({ f }) => f.verdict)?.f.verdict
+      if (parts.length) out.push(`<div class="quiet${isNew(last.i)}"><span class="dot" style="background:${vd ? COLOR[vd] : 'var(--faint)'}"></span>${esc([...new Set(parts)].join(' · '))}</div>`)
     }
-    if (f.internal) return showNotes ? `<div class="entry note${isNew(i)}"><span class="dot" style="background:${f.verdict ? COLOR[f.verdict] : 'var(--faint)'}"></span>${esc(noteText(f))}</div>` : ''
+    group = []
+  }
+  v.feed.forEach((f, i) => {
+    if (f.internal) { group.push({ f, i }); return }
+    flush()
+    if (f.fromSide === 'system') { out.push(`<div class="event${/removed|revoked|failed/i.test(f.text) ? ' bad' : ''}${isNew(i)}">${esc(eventText(f, v))}</div>`); return }
     const side = f.fromSide === 'shopper' ? 'visitor' : f.fromSide === 'owner' ? 'owner' : 'store'
-    const who = side === 'visitor' ? `${esc(f.from)} · visitor` : esc(ROLE[f.from] || f.from)
-    return `<div class="entry ${side}${isNew(i)}"><div class="who">${who}</div><div class="what">${esc(f.text)}</div></div>`
-  }).join('')
+    const initial = side === 'visitor' ? esc(f.from[0]) : side === 'owner' ? 'O' : 'M'
+    const h = headline(f, v)
+    out.push(`<div class="line${isNew(i)}${speakingIdx === `${v.roomId}:${i}` ? ' speaking' : ''}" data-i="${i}" onclick="this.classList.toggle('open')">
+      <div class="avatar ${side}" title="${esc(f.from)}">${initial}</div>
+      <div class="body"><div class="head">${esc(h.text)}</div>${h.extra || ''}<div class="full">${esc(f.text)}</div></div></div>`)
+  })
+  flush()
+  feed.innerHTML = out.join('')
   if (nearBottom) feed.scrollTop = feed.scrollHeight
+  narrate(v)
 
   // Security
   const t = v.trust
