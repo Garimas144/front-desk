@@ -11,7 +11,8 @@ import { zooworkEnabled } from './zoowork.js'
 const PORT = Number(process.env.PORT || 4000)
 const mode = process.env.TRANSPORT || 'local'
 const frontdeskHandle = process.env.BAND_FRONTDESK_HANDLE || '@marlow/front-desk'
-const ownerHandle = process.env.BAND_OWNER_HANDLE || null
+// The owner is a real Band user, so only invite them on the live transport.
+const ownerHandle = mode === 'band' ? process.env.BAND_OWNER_HANDLE || null : null
 
 let transport
 if (mode === 'band') transport = (await import('./transport/band.js')).createBandTransport()

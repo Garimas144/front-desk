@@ -3,149 +3,241 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Front Desk · Marlow &amp; Pine</title>
+<title>Marlow &amp; Pine · Front Desk</title>
 <style>
   :root {
-    --bg: #f6f4ef; --panel: #ffffff; --ink: #1d1b18; --muted: #6f6a62; --line: #e3ded4;
-    --allow: #1f7a4d; --allow-bg: #e3f3ea; --limit: #a86400; --limit-bg: #fdf0d9; --block: #b42318; --block-bg: #fde4e1;
-    --shopper: #eef2fb; --merchant: #f7f5f0; --internal: #fbfaf7; --accent: #2e3a59;
+    --paper: #FAF8F4; --card: #FFFFFF; --ink: #1C1C1A; --muted: #7A766E; --faint: #A9A399; --line: #ECE7DE;
+    --pine: #23413A; --pine-soft: #E4ECE8; --cream: #F3E9D2; --cream-ink: #6B4E16;
+    --ok: #3A9A6A; --ok-ink: #2E7D55; --warn: #C98A1E; --warn-ink: #9A6512; --bad: #C2453A; --bad-ink: #A3352B;
+    --serif: Georgia, "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Inter, sans-serif; }
-  header { display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  header h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-  header .sub { color: var(--muted); font-size: 15px; }
-  header .spacer { flex: 1; }
-  button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
-  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  button:hover { filter: brightness(0.96); }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; background: #eee; color: var(--muted); }
-  .tabs { display: flex; gap: 8px; padding: 10px 22px 0; flex-wrap: wrap; }
-  .tab { padding: 6px 12px; border-radius: 8px 8px 0 0; border: 1px solid var(--line); border-bottom: none; background: #efece5; cursor: pointer; font-size: 14px; }
-  .tab.on { background: var(--panel); font-weight: 600; }
-  main { display: grid; grid-template-columns: 1.45fr 1fr 0.95fr; gap: 16px; padding: 0 22px 22px; height: calc(100vh - 112px); }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 0 12px 12px 12px; display: flex; flex-direction: column; min-height: 0; }
-  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; padding: 14px 18px 10px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
-  .scroll { overflow-y: auto; padding: 14px 18px; flex: 1; }
-  .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; background: var(--merchant); white-space: pre-wrap; word-wrap: break-word; }
-  .msg .who { font-weight: 650; font-size: 14px; margin-bottom: 2px; }
-  .msg .to { color: var(--muted); font-weight: 400; }
-  .msg.shopper { background: var(--shopper); }
-  .msg.internal { background: var(--internal); border: 1px dashed var(--line); font-size: 15px; color: #45413b; }
-  .msg.system { background: transparent; color: var(--muted); font-size: 14px; padding: 4px 12px; font-style: italic; }
-  .msg.owner { background: #efe9fb; }
-  .msg.v-block { border-left: 4px solid var(--block); } .msg.v-limit { border-left: 4px solid var(--limit); } .msg.v-allow { border-left: 4px solid var(--allow); }
-  .verdict { font-size: 64px; font-weight: 800; letter-spacing: 0.02em; text-align: center; padding: 18px 0 6px; border-radius: 12px; margin-bottom: 12px; transition: background .3s, color .3s; }
-  .verdict.allow { color: var(--allow); background: var(--allow-bg); } .verdict.limit { color: var(--limit); background: var(--limit-bg); } .verdict.block { color: var(--block); background: var(--block-bg); }
-  .verdict small { display: block; font-size: 18px; font-weight: 600; padding-bottom: 12px; }
-  .meter { height: 14px; background: #eee; border-radius: 99px; overflow: hidden; margin: 4px 0 16px; }
-  .meter > div { height: 100%; transition: width .5s, background .3s; }
-  .reasons { margin: 0; padding-left: 20px; font-size: 18px; }
-  .reasons li { margin-bottom: 10px; }
-  .timeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .chip { padding: 3px 9px; border-radius: 999px; font-size: 13px; font-weight: 700; }
-  .chip.allow { background: var(--allow-bg); color: var(--allow); } .chip.limit { background: var(--limit-bg); color: var(--limit); } .chip.block { background: var(--block-bg); color: var(--block); }
-  .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .item .name { font-weight: 600; } .item .price { font-weight: 700; } .item .why { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
-  .total { display: flex; justify-content: space-between; font-size: 24px; font-weight: 800; padding: 14px 0; }
-  .approval { border-radius: 12px; padding: 16px; margin-top: 8px; font-size: 18px; }
-  .approval.pending { background: var(--limit-bg); } .approval.approved { background: var(--allow-bg); } .approval.denied { background: var(--block-bg); }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.5 var(--sans); }
+  button { font: inherit; cursor: pointer; border: none; }
+
+  header { display: flex; align-items: center; gap: 16px; padding: 20px 28px 12px; flex-wrap: wrap; }
+  .mono { width: 46px; height: 46px; border-radius: 13px; background: var(--pine); color: var(--cream); display: grid; place-items: center; font: 24px var(--serif); }
+  .brand h1 { margin: 0; font: 400 28px/1.1 var(--serif); letter-spacing: -0.01em; }
+  .brand p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+  .spacer { flex: 1; }
+  .pill { border-radius: 999px; padding: 10px 20px; font-size: 15px; transition: transform .15s, background .15s; }
+  .pill:active { transform: scale(0.97); }
+  .pill.solid { background: var(--pine); color: var(--cream); }
+  .pill.solid:hover { background: #1A332D; }
+  .pill.ghost { background: transparent; color: var(--pine); box-shadow: inset 0 0 0 1.5px var(--pine); }
+  .pill.ghost:hover { background: var(--pine-soft); }
+  .pill.quiet { background: transparent; color: var(--muted); padding: 10px 12px; }
+  .status { font-size: 12px; color: var(--muted); display: flex; gap: 12px; align-items: center; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--faint); }
+  .dot.on { background: var(--ok); }
+
+  .visits { display: flex; gap: 8px; padding: 0 28px; flex-wrap: wrap; min-height: 34px; }
+  .visit { background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 14px; font-size: 14px; box-shadow: inset 0 0 0 1px var(--line); }
+  .visit.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.05), inset 0 0 0 1px var(--line); }
+
+  .strip { margin: 12px 28px 14px; background: var(--card); border-radius: 999px; padding: 10px 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 15px; color: var(--faint); }
+  .strip .step { transition: color .3s, background .3s; padding: 3px 0; }
+  .strip .step.done { color: var(--pine); }
+  .strip .step.now { background: var(--cream); color: var(--cream-ink); padding: 3px 12px; border-radius: 999px; }
+  .strip .step.bad { background: #F6DEDA; color: var(--bad-ink); padding: 3px 12px; border-radius: 999px; }
+  .strip .sep { color: var(--line); }
+
+  main { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 16px; padding: 0 28px 28px; height: calc(100vh - 196px); min-height: 520px; }
+  .card { background: var(--card); border-radius: 20px; padding: 20px 22px; display: flex; flex-direction: column; min-height: 0; box-shadow: 0 1px 2px rgba(40,30,10,.04); }
+  .card h2 { margin: 0 0 12px; font: 400 20px var(--serif); display: flex; justify-content: space-between; align-items: center; }
+  .card h2 small { font: 13px var(--sans); color: var(--muted); }
+  .scroll { overflow-y: auto; flex: 1; padding-right: 4px; }
+
+  .entry { margin-bottom: 16px; }
+  .new { animation: rise .35s ease both; }
+  .entry .who { font-size: 12px; color: var(--muted); margin-bottom: 2px; letter-spacing: .01em; }
+  .entry .what { white-space: pre-wrap; word-wrap: break-word; }
+  .entry.store .what { padding-left: 12px; border-left: 2.5px solid var(--pine); }
+  .entry.owner .what { padding-left: 12px; border-left: 2.5px solid var(--warn); }
+  .entry.note { font-size: 13px; color: var(--faint); margin-bottom: 10px; }
+  .entry.note .dot { width: 6px; height: 6px; }
+  .entry.system { font-size: 13px; color: var(--muted); font-style: italic; background: var(--paper); border-radius: 10px; padding: 8px 12px; }
+  .toggle { font: 13px var(--sans); color: var(--muted); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+  .empty { color: var(--faint); font-style: italic; }
+
+  .stampbox { display: grid; place-items: center; padding: 18px 0 8px; }
+  .stamp { display: inline-block; font: 40px/1 var(--serif); border: 3px solid; border-radius: 14px; padding: 12px 26px; transform: rotate(-4deg); }
+  .stamp.allow { color: var(--ok-ink); border-color: var(--ok); }
+  .stamp.limit { color: var(--warn-ink); border-color: var(--warn); transform: rotate(3deg); }
+  .stamp.block { color: var(--bad-ink); border-color: var(--bad); transform: rotate(-2deg); }
+  .stamp.fresh { animation: stampIn .45s cubic-bezier(.2,1.6,.4,1) both; }
+  .risk { text-align: center; font-size: 14px; color: var(--muted); margin-top: 10px; }
+  .bar { height: 8px; border-radius: 4px; background: #EFEBE3; margin: 10px 0 16px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 4px; transition: width .7s ease, background .4s; }
+  .reasons { margin: 0; padding: 0; list-style: none; }
+  .reasons li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; }
+  .reasons li:first-child { border-top: none; }
+  .reasons .ai { color: var(--muted); font-size: 14px; }
+  .trail { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  .mini { font: 13px var(--serif); border: 1.5px solid; border-radius: 7px; padding: 1px 8px; }
+  .mini.allow { color: var(--ok-ink); border-color: var(--ok); transform: rotate(-3deg); }
+  .mini.limit { color: var(--warn-ink); border-color: var(--warn); transform: rotate(2deg); }
+  .mini.block { color: var(--bad-ink); border-color: var(--bad); transform: rotate(-2deg); }
+  .trail .arrow { color: var(--faint); font-size: 12px; }
+
+  .item { display: grid; grid-template-columns: 26px 1fr auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .swatch { width: 26px; height: 32px; border-radius: 7px; grid-row: span 2; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .item .name { font-size: 16px; }
+  .item .size { font-size: 12px; color: var(--muted); margin-left: 6px; }
+  .item .price { font-size: 16px; }
+  .item .why { grid-column: 2 / -1; font-size: 13px; color: var(--muted); }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-top: 1.5px dashed var(--line); margin-top: 4px; }
+  .total span:first-child { font: 22px var(--serif); }
+  .total span:last-child { font-size: 26px; }
+  .by { font-size: 12px; color: var(--faint); }
+  .approval { margin-top: 12px; border-radius: 16px; padding: 16px; background: var(--cream); color: var(--cream-ink); }
+  .approval b { font: 400 18px var(--serif); display: block; margin-bottom: 4px; }
   .approval .row { display: flex; gap: 10px; margin-top: 12px; }
-  .approval button { font-size: 18px; padding: 10px 18px; }
-  .approve { background: var(--allow); color: #fff; border-color: var(--allow); }
-  .deny { background: #fff; color: var(--block); border-color: var(--block); }
-  .order { margin-top: 12px; padding: 16px; border-radius: 12px; background: var(--allow-bg); color: var(--allow); font-size: 20px; font-weight: 700; }
-  .empty { color: var(--muted); font-style: italic; }
-  label.toggle { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
-  @media (max-width: 1000px) { main { grid-template-columns: 1fr; height: auto; } section { min-height: 300px; } }
+  .approval .pill { padding: 10px 18px; }
+  .approval.done { background: var(--pine-soft); color: var(--pine); }
+  .approval.denied { background: #F6DEDA; color: var(--bad-ink); }
+  .paid { margin-top: 14px; text-align: center; }
+  .paid .stamp { font-size: 26px; padding: 8px 18px; }
+  .paid p { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .shownout { margin-top: 14px; border-radius: 16px; padding: 16px; background: #F6DEDA; color: var(--bad-ink); }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes stampIn { 0% { opacity: 0; transform: scale(1.8) rotate(-12deg); } 100% { opacity: 1; } }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; height: auto; } .card { min-height: 340px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>Front Desk</h1>
-  <span class="sub">Marlow &amp; Pine's agent team for shopper agents</span>
-  <span class="pill" id="mode"></span>
-  <span class="spacer"></span>
-  <label class="toggle"><input type="checkbox" id="showInternal" checked /> show merchant handoffs</label>
-  <button class="primary" onclick="run('legit')">▶ Napa Wedding Shopper</button>
-  <button class="primary" onclick="run('bot')">▶ Deal Hunter Scout</button>
-  <button onclick="fetch('/api/reset',{method:'POST'})">Reset</button>
+  <div class="mono">M</div>
+  <div class="brand"><h1>Marlow &amp; Pine</h1><p>Front desk, open 24 hours</p></div>
+  <div class="spacer"></div>
+  <div class="status" id="status"></div>
+  <button class="pill solid" onclick="run('legit')">Welcome a shopper</button>
+  <button class="pill ghost" onclick="run('bot')">Send a bot</button>
+  <button class="pill quiet" onclick="reset()">Reset</button>
 </header>
-<div class="tabs" id="tabs"></div>
+<div class="visits" id="visits"></div>
+<div class="strip" id="strip"><span class="step">Waiting for a visitor</span></div>
 <main>
-  <section>
-    <h2><span>Live room feed</span><span class="pill" id="roomStatus">no visit yet</span></h2>
-    <div class="scroll" id="feed"><p class="empty">Waiting for a shopper agent to send a contact request…</p></div>
+  <section class="card">
+    <h2>Guest book <label class="toggle"><input type="checkbox" id="notes" checked /> team notes</label></h2>
+    <div class="scroll" id="feed"><p class="empty">The door is open. Waiting for a shopping assistant to knock.</p></div>
   </section>
-  <section>
-    <h2><span>Trust</span><span id="judge" class="pill"></span></h2>
-    <div class="scroll" id="trust"></div>
+  <section class="card">
+    <h2>Security <small id="judge"></small></h2>
+    <div class="scroll" id="trust"><p class="empty">Every message a visitor sends is checked here.</p></div>
   </section>
-  <section>
-    <h2><span>Cart &amp; approvals</span></h2>
-    <div class="scroll" id="cart"></div>
+  <section class="card">
+    <h2>Cart</h2>
+    <div class="scroll" id="cart"><p class="empty">The stylist's picks will appear here.</p></div>
   </section>
 </main>
 <script>
-let state = { visits: [], current: null }
-let pinned = null
 const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
-$('showInternal').onchange = render
+let state = { visits: [] }, pinned = null, lastStamp = {}, seen = {}
+$('notes').onchange = render
 
-function run(who) { pinned = null; fetch('/api/run/' + who, { method: 'POST' }).then(r => r.json()).then(r => { if (!r.ok) alert(r.error || 'Could not start shopper') }) }
+const ROLE = { 'Marlow Front Desk': 'Front desk', 'Marlow Trust': 'Security', 'Marlow Catalog': 'Stylist', 'Owner': 'Owner', 'Band': 'Band' }
+const WORD = { allow: 'Welcome', limit: 'Careful', block: 'Shown out' }
+const COLOR = { allow: 'var(--ok)', limit: 'var(--warn)', block: 'var(--bad)' }
+const SWATCH = [
+  [/terracotta/i, '#C2683F'], [/rust/i, '#A8492A'], [/olive/i, '#6F7340'], [/sage/i, '#A7B59A'], [/moss/i, '#6E7B4E'],
+  [/mocha/i, '#7B5A47'], [/cognac/i, '#9A5B33'], [/bronze/i, '#8C6239'], [/tan/i, '#C8A27A'], [/camel/i, '#B98B5A'],
+  [/raffia|straw|natural|canvas|linen|oat/i, '#D9C7A5'], [/gold|hoop|bangle|chain/i, '#C9A24A'], [/amber/i, '#C7802B'],
+  [/pearl|ivory|cream/i, '#EDE6D6'], [/black/i, '#2A2826'], [/navy/i, '#26324A'], [/cobalt/i, '#2F55A4'], [/floral|blush/i, '#E7B9B4'],
+  [/champagne|satin/i, '#E3CFA8'], [/scarf/i, '#B9643F'], [/white/i, '#F2F0EB'], [/suede|chocolate/i, '#5A3B2A'], [/denim|jeans/i, '#3E5A82'],
+]
+const swatch = (name) => (SWATCH.find(([r]) => r.test(name)) || [0, '#CFC6B6'])[1]
+
+function run(who) { pinned = null; fetch('/api/run/' + who, { method: 'POST' }).then((r) => r.json()).then((r) => { if (!r.ok) alert(r.error || 'Could not start the visitor') }) }
+function reset() { pinned = null; lastStamp = {}; seen = {}; fetch('/api/reset', { method: 'POST' }) }
 function decide(room, d) { fetch(`/api/${d}/${encodeURIComponent(room)}`, { method: 'POST' }) }
 
-const es = new EventSource('/api/events')
-es.onmessage = (e) => { state = JSON.parse(e.data); render() }
+new EventSource('/api/events').onmessage = (e) => { state = JSON.parse(e.data); render() }
+
+function noteText(f) {
+  const t = f.text.replace(/^\[J\d+\]\s*/, '')
+  if (f.from === 'Marlow Front Desk' && /screen this/i.test(t)) return 'Front desk asked Security to check the message'
+  if (f.from === 'Marlow Front Desk' && /build a cart/i.test(t)) return 'Front desk asked the Stylist to build a cart'
+  if (f.from === 'Marlow Front Desk' && /price check/i.test(t)) return 'Front desk asked the Stylist for prices'
+  if (f.from === 'Marlow Trust') return `Security: ${WORD[f.verdict] || ''} · ${(t.match(/risk \d+\/100/) || [''])[0]}`
+  if (f.from === 'Marlow Catalog') return `Stylist: ${t}`
+  return t
+}
+
+function steps(v) {
+  if (!v) return []
+  const checked = v.trust.history?.length > 0
+  if (v.status === 'blocked' || v.trust.verdict !== 'allow') {
+    return [['Knocked', 'done'], ['Let in', 'done'], ['Checked', checked ? 'done' : ''],
+      ['Careful', v.trust.history?.some((h) => h.verdict === 'limit') ? (v.status === 'blocked' ? 'done' : 'now') : ''],
+      ['Shown out', v.status === 'blocked' ? 'bad' : '']]
+  }
+  const a = v.approval?.status
+  return [['Knocked', 'done'], ['Let in', 'done'], ['Checked', checked ? 'done' : 'now'],
+    ['Cart built', v.cart ? 'done' : checked ? 'now' : ''],
+    ['Owner approval', a === 'pending' ? 'now' : a ? 'done' : ''],
+    ['Order', v.order ? 'done' : '']]
+}
 
 function render() {
-  $('mode').textContent = `Band: ${state.mode === 'band' ? 'live' : 'local sim'} · ZooWork: ${state.zoowork ? 'on' : 'off'}`
+  $('status').innerHTML = `<span><span class="dot ${state.mode === 'band' ? 'on' : ''}"></span>Band ${state.mode === 'band' ? 'live' : 'simulated'}</span><span><span class="dot ${state.zoowork ? 'on' : ''}"></span>ZooWork ${state.zoowork ? 'on' : 'off'}</span>`
   const visits = state.visits || []
-  const roomId = pinned || state.current
-  const v = visits.find((x) => x.roomId === roomId) || visits[0]
-  $('tabs').innerHTML = visits.map((x) => `<div class="tab ${v && x.roomId === v.roomId ? 'on' : ''}" onclick="pinned='${x.roomId}';render()">${esc(x.shopper.name)} · ${esc(x.status)}</div>`).join('')
+  const v = visits.find((x) => x.roomId === (pinned || state.current)) || visits[0]
+  $('visits').innerHTML = visits.map((x) => `<button class="visit ${v && x.roomId === v.roomId ? 'on' : ''}" onclick="pinned='${x.roomId}';render()">${esc(x.shopper.name)}</button>`).join('')
+
+  $('strip').innerHTML = v
+    ? steps(v).map(([s, c]) => `<span class="step ${c}">${s}</span>`).join('<span class="sep">›</span>')
+    : '<span class="step">Waiting for a visitor</span>'
   if (!v) return
-  $('roomStatus').textContent = `${v.status} · contact ${v.contact}`
 
-  const showInt = $('showInternal').checked
-  const feedEl = $('feed')
-  const atBottom = feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 80
-  feedEl.innerHTML = v.feed.filter((f) => showInt || !f.internal).map((f) => {
-    const cls = f.fromSide === 'system' ? 'system' : f.internal ? 'internal' : f.fromSide
-    const vcls = f.verdict ? ` v-${f.verdict}` : ''
-    if (cls === 'system') return `<div class="msg system">${esc(f.text)}</div>`
-    const to = f.to?.length ? ` <span class="to">→ @${f.to.map(esc).join(', @')}</span>` : ''
-    return `<div class="msg ${cls}${vcls}"><div class="who">${esc(f.from)}${to}</div>${esc(f.text)}</div>`
+  // Guest book
+  const showNotes = $('notes').checked
+  const feed = $('feed')
+  const nearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 90
+  const prev = seen[v.roomId] || { feed: 0, cart: false, paid: false, approval: null }
+  const isNew = (i) => (i >= prev.feed ? ' new' : '')
+  feed.innerHTML = v.feed.map((f, i) => {
+    if (f.fromSide === 'system') {
+      const t = f.text.replace(/^Cross-company contact: /, 'Two companies connected on Band: ')
+      return `<div class="entry system${isNew(i)}">${esc(t)}</div>`
+    }
+    if (f.internal) return showNotes ? `<div class="entry note${isNew(i)}"><span class="dot" style="background:${f.verdict ? COLOR[f.verdict] : 'var(--faint)'}"></span>${esc(noteText(f))}</div>` : ''
+    const side = f.fromSide === 'shopper' ? 'visitor' : f.fromSide === 'owner' ? 'owner' : 'store'
+    const who = side === 'visitor' ? `${esc(f.from)} · visitor` : esc(ROLE[f.from] || f.from)
+    return `<div class="entry ${side}${isNew(i)}"><div class="who">${who}</div><div class="what">${esc(f.text)}</div></div>`
   }).join('')
-  if (atBottom) feedEl.scrollTop = feedEl.scrollHeight
+  if (nearBottom) feed.scrollTop = feed.scrollHeight
 
+  // Security
   const t = v.trust
-  const color = { allow: 'var(--allow)', limit: 'var(--limit)', block: 'var(--block)' }[t.verdict]
-  $('judge').textContent = t.judged ? 'rules + AI judge' : 'rules'
+  const fresh = lastStamp[v.roomId] !== t.verdict && t.history?.length
+  lastStamp[v.roomId] = t.verdict
+  $('judge').textContent = t.judged ? 'rules + AI judge' : ''
   $('trust').innerHTML = `
-    <div class="verdict ${t.verdict}">${t.verdict.toUpperCase()}<small>risk ${t.risk} / 100</small></div>
-    <div class="meter"><div style="width:${t.risk}%;background:${color}"></div></div>
-    <ul class="reasons">${(t.reasons || []).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
-    ${t.history?.length ? `<div style="color:var(--muted);font-size:14px;margin-top:14px">Verdict history</div>
-      <div class="timeline">${t.history.map((h) => `<span class="chip ${h.verdict}" title="${esc(h.text)}">${h.verdict} ${h.risk}</span>`).join('<span style="color:var(--muted)">→</span>')}</div>` : ''}`
+    <div class="stampbox"><span class="stamp ${t.verdict} ${fresh ? 'fresh' : ''}">${WORD[t.verdict]}</span></div>
+    <div class="risk">risk ${t.risk} of 100</div>
+    <div class="bar"><div style="width:${Math.max(3, t.risk)}%;background:${COLOR[t.verdict]}"></div></div>
+    <ul class="reasons">${(t.reasons || []).map((r) => r.startsWith('AI judge') ? `<li class="ai">${esc(r)}</li>` : `<li>${esc(r)}</li>`).join('')}</ul>
+    ${t.history?.length > 1 ? `<div class="trail">${t.history.map((h) => `<span class="mini ${h.verdict}" title="${esc(h.text)}">${WORD[h.verdict]}</span>`).join('<span class="arrow">›</span>')}</div>` : ''}`
 
+  // Cart
   let html = ''
   if (v.cart) {
-    html += v.cart.items.map((i) => `<div class="item"><span class="name">${esc(i.name)} <span class="pill">${esc(i.size)}</span></span><span class="price">$${i.price}</span><span class="why">${esc(i.reason)}</span></div>`).join('')
+    html += v.cart.items.map((i) => `<div class="item${prev.cart ? '' : ' new'}"><span class="swatch" style="background:${swatch(i.name)}"></span><span class="name">${esc(i.name)}<span class="size">${esc(i.size)}</span></span><span class="price">$${i.price}</span><span class="why">${esc(i.reason)}</span></div>`).join('')
     html += `<div class="total"><span>Total</span><span>$${v.cart.total}</span></div>`
-    html += `<div style="color:var(--muted);font-size:13px">Built by @catalog (${v.cart.by === 'zoowork' ? 'ZooWork model' : 'rules'})</div>`
-  } else html += `<p class="empty">No cart yet.</p>`
+    html += `<div class="by">Picked by the Stylist${v.cart.by === 'zoowork' ? ' (ZooWork)' : ''}</div>`
+  } else if (v.status !== 'blocked') html += `<p class="empty">The stylist's picks will appear here.</p>`
   const a = v.approval
-  if (a) {
-    html += `<div class="approval ${a.status}"><b>Owner approval: ${a.status}</b><div>${esc(a.reasons.join('; '))}</div>`
-    if (a.status === 'pending') html += `<div class="row"><button class="approve" onclick="decide('${v.roomId}','approve')">Approve $${a.total}</button><button class="deny" onclick="decide('${v.roomId}','deny')">Deny</button></div>`
-    else html += `<div style="font-size:15px;margin-top:6px">by ${esc(a.by)}</div>`
-    html += `</div>`
-  }
-  if (v.order) html += `<div class="order">✓ Order ${esc(v.order.id)} · $${v.order.total}<div style="font-size:14px;font-weight:500">Test mode, no real payment</div></div>`
-  if (v.status === 'blocked') html += `<div class="approval denied"><b>Visitor blocked.</b> Contact revoked; reasons are logged in the room.</div>`
+  if (a?.status === 'pending') html += `<div class="approval${prev.approval === 'pending' ? '' : ' new'}"><b>Needs your approval</b>${esc(a.reasons.join('; '))}<div class="row"><button class="pill solid" onclick="decide('${v.roomId}','approve')">Approve $${a.total}</button><button class="pill ghost" onclick="decide('${v.roomId}','deny')">Decline</button></div></div>`
+  else if (a?.status === 'approved') html += `<div class="approval done"><b>Approved</b>by ${esc(a.by)}</div>`
+  else if (a?.status === 'denied') html += `<div class="approval denied"><b>Declined</b>by ${esc(a.by)}</div>`
+  if (v.order) html += `<div class="paid"><span class="stamp allow${prev.paid ? '' : ' fresh'}">Paid</span><p>Order ${esc(v.order.id)} · $${v.order.total} · test mode, no real payment</p></div>`
+  if (v.status === 'blocked') html += `<div class="shownout"><b style="font:400 18px var(--serif)">Visitor shown out</b><div style="margin-top:4px">Removed from the room and contact revoked. The reasons are saved in the Band room log.</div></div>`
   $('cart').innerHTML = html
+  seen[v.roomId] = { feed: v.feed.length, cart: !!v.cart, paid: !!v.order, approval: a?.status || null }
 }
 </script>
 </body>

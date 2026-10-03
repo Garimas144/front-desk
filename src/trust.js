@@ -156,11 +156,11 @@ Reply with ONLY this JSON, verdict must be exactly one of allow, limit, block:
         verdict = 'limit'
         reasons.push('AI judge escalated this visit.')
       }
-      // Show the judge's reasons only when they don't contradict the rules: if the rules found a risk
-      // signal and the judge calls it fine, the rule finding stands and the judge's "all clear" is dropped.
+      // Show the judge's reasons only when the judge agrees with the final verdict
+      // (all-clear reasons under an allow; concern reasons under a limit/block), so the panel never argues with itself.
       const judgeClear = judge.verdict === 'allow' && judge.mismatch !== true
-      const contradicts = judgeClear && rules.risk >= 10
-      if (!contradicts)
+      const agrees = judgeClear === (verdict === 'allow')
+      if (agrees)
         for (const r of (judge.reasons || []).slice(0, 2)) if (typeof r === 'string' && r.length < 200) reasons.push(`AI judge: ${r}`)
     }
   }
