@@ -60,3 +60,8 @@ app.post('/api/run/:who', async (req, res) => {
 })
 
 app.listen(PORT, () => console.log(`Front Desk dashboard on http://localhost:${PORT} (transport=${mode}, zoowork=${zooworkEnabled()})`))
+  .on('error', (e) => {
+    // A second copy must not keep its Band agents online: it would steal room messages from the first.
+    console.error(`Port ${PORT} is busy (${e.code}). Another Front Desk is already running. Stop it first (Ctrl+C in its window).`)
+    process.exit(1)
+  })

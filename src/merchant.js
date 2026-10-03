@@ -60,21 +60,41 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
   })
 
   fd.onContactAdded((c) => openRoom(c).catch((e) => console.error('[frontdesk] open room failed:', e.message)))
+  // Each Band call in room setup gets a timeout and one retry, and logs its step, so a slow call can't stall a visit.
+  async function step(label, fn, { retries = 1, ms = 15_000 } = {}) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await Promise.race([fn(), new Promise((_, rej) => setTimeout(() => rej(new Error(`timed out after ${ms}ms`)), ms))])
+      } catch (e) {
+        console.warn(`[frontdesk] ${label} failed (attempt ${attempt + 1}): ${e.message}`)
+        if (attempt >= retries) throw e
+      }
+    }
+  }
+
+  const opening = new Set()
   async function openRoom(c) {
-    if (!c.handle || c.handle === ownerHandle) return
-    const p = pendingIntro.get(c.handle) || { name: c.name || c.handle, intro: '' }
-    pendingIntro.delete(c.handle)
-    const roomId = await fd.createRoom(`Visit: ${p.name}`)
-    const v = { shopper: { handle: c.handle, name: p.name, id: null }, trust: newVisit(p.intro), cart: null, discountPct: 0, closed: false, approval: null }
-    visits.set(roomId, v)
-    dash.openVisit(roomId, { handle: c.handle, name: p.name, intro: p.intro })
-    dash.feed(roomId, { from: 'Band', fromSide: 'system', text: `Contact request from ${c.handle} approved by @frontdesk. Room opened.` })
-    await fd.addParticipant(roomId, cat.handle, cat.id)
-    await fd.addParticipant(roomId, tr.handle, tr.id)
-    if (ownerHandle) await fd.addParticipant(roomId, ownerHandle, process.env.BAND_OWNER_ID).catch((e) => console.warn('owner add failed', e.message))
-    await fd.addParticipant(roomId, c.handle)
-    await say(fd, roomId, c.handle,
-      `Welcome to Marlow & Pine. I'm the front desk. Tell me what your customer needs (occasion, size, budget) and our stylist will put a cart together.`)
+    if (!c.handle || c.handle === ownerHandle || opening.has(c.handle)) return
+    opening.add(c.handle)
+    try {
+      const p = pendingIntro.get(c.handle) || { name: c.name || c.handle, intro: '' }
+      pendingIntro.delete(c.handle)
+      console.log(`[frontdesk] opening room for ${c.handle}`)
+      const roomId = await step('create room', () => fd.createRoom(`Visit: ${p.name}`))
+      const v = { shopper: { handle: c.handle, name: p.name, id: null }, trust: newVisit(p.intro), cart: null, discountPct: 0, closed: false, approval: null }
+      visits.set(roomId, v)
+      dash.openVisit(roomId, { handle: c.handle, name: p.name, intro: p.intro })
+      dash.feed(roomId, { from: 'Band', fromSide: 'system', text: `Cross-company contact: ${c.handle} (shopper account) requested, ${fd.handle} (merchant account) approved. Room opened.` })
+      await step('add catalog', () => fd.addParticipant(roomId, cat.handle, cat.id))
+      await step('add trust', () => fd.addParticipant(roomId, tr.handle, tr.id))
+      if (ownerHandle) await step('add owner', () => fd.addParticipant(roomId, ownerHandle, process.env.BAND_OWNER_ID), { retries: 0 }).catch(() => {})
+      await step('add shopper', () => fd.addParticipant(roomId, c.handle), { retries: 2 })
+      await say(fd, roomId, c.handle,
+        `Welcome to Marlow & Pine. I'm the front desk. Tell me what your customer needs (occasion, size, budget) and our stylist will put a cart together.`)
+      console.log(`[frontdesk] room ready for ${c.handle}`)
+    } finally {
+      opening.delete(c.handle)
+    }
   }
 
   // ---------- @frontdesk: room messages ----------

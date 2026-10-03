@@ -75,8 +75,9 @@ export function buildCartDeterministic(need) {
 
 export function sizeFor(p, need) {
   if (p.sizes.includes('One Size')) return 'One Size'
-  if (p.category === 'shoes') return need.shoe && p.sizes.includes(need.shoe) ? need.shoe : p.sizes[Math.floor(p.sizes.length / 2)]
-  return need.size && p.sizes.includes(need.size) ? need.size : p.sizes[1] || p.sizes[0]
+  // Never guess a size the visitor did not give us: flag it for the shopper to confirm instead.
+  if (p.category === 'shoes') return need.shoe && p.sizes.includes(need.shoe) ? need.shoe : 'size to confirm'
+  return need.size && p.sizes.includes(need.size) ? need.size : 'size to confirm'
 }
 
 export const byId = (id) => catalog.find((p) => p.id === id)

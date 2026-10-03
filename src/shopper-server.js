@@ -22,3 +22,4 @@ app.post('/run/:who', (req, res) => {
 })
 const port = Number(process.env.SHOPPER_PORT || 4001)
 app.listen(port, () => console.log(`Shopper agents ready on :${port} (contacting ${frontdeskHandle})`))
+  .on('error', (e) => { console.error(`Port ${port} is busy (${e.code}). Shoppers are already running elsewhere.`); process.exit(1) })
