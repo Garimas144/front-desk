@@ -159,6 +159,11 @@
   .quiet .dot { width: 6px; height: 6px; }
   .voicehint { font-size: 12px; color: var(--cream-ink); background: var(--cream); border-radius: 999px; padding: 4px 10px; display: none; }
   .voicehint.show { display: inline-block; }
+
+  .avatar.guard { background: #F6DEDA; color: var(--bad-ink); font-family: var(--serif); }
+  .line.guard .head { color: var(--bad-ink); }
+  .line.guard.limit .avatar { background: var(--cream); color: var(--warn-ink); }
+  .line.guard.limit .head { color: var(--warn-ink); }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes stampIn { 0% { opacity: 0; transform: scale(1.8) rotate(-5deg); } 100% { opacity: 1; } }
   @media (max-width: 1000px) { .door { grid-template-columns: 1fr; gap: 10px; } .rail, .packet { display: none; } main { grid-template-columns: 1fr; height: auto; } .card { min-height: 340px; } }
@@ -192,7 +197,7 @@
 <div class="strip" id="strip"><span class="step">Waiting for a visitor</span></div>
 <main>
   <section class="card">
-    <h2>Guest book <span style="display:flex;gap:10px;align-items:center"><span class="voicehint" id="voicehint">Click anywhere to hear the narration</span><label class="toggle"><input type="checkbox" id="notes" /> team notes</label></span></h2>
+    <h2>Guest book <span style="display:flex;gap:10px;align-items:center"><span class="voicehint" id="voicehint">Click anywhere to hear the narration</span></span></h2>
     <div class="scroll" id="feed"><p class="empty">The door is open. Waiting for a shopping assistant to knock.</p></div>
   </section>
   <section class="card">
@@ -208,7 +213,6 @@
 const $ = (id) => document.getElementById(id)
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 let state = { visits: [] }, pinned = null, lastStamp = {}, seen = {}
-$('notes').onchange = render
 
 const ROLE = { 'Marlow Front Desk': 'Front desk', 'Marlow Trust': 'Security', 'Marlow Catalog': 'Stylist', 'Owner': 'Owner', 'Band': 'Band' }
 const WORD = { allow: 'Welcome', limit: 'Careful', block: 'Shown out' }
@@ -222,21 +226,11 @@ const SWATCH = [
 ]
 const swatch = (name) => (SWATCH.find(([r]) => r.test(name)) || [0, '#CFC6B6'])[1]
 
-function run(who) { pinned = null; narrateFrom = true; synth?.cancel(); fetch('/api/run/' + who, { method: 'POST' }).then((r) => r.json()).then((r) => { if (!r.ok) alert(r.error || 'Could not start the visitor') }) }
-function reset() { pinned = null; lastStamp = {}; seen = {}; doorSeen = {}; spoken = {}; synth?.cancel(); fetch('/api/reset', { method: 'POST' }) }
+function run(who) { pinned = null; autoplayNext = true; synth?.cancel(); playing = false; clearTimeout(playTimer); fetch('/api/run/' + who, { method: 'POST' }).then((r) => r.json()).then((r) => { if (!r.ok) alert(r.error || 'Could not start the visitor') }) }
+function reset() { pinned = null; lastStamp = {}; seen = {}; doorSeen = {}; shown = {}; playing = false; clearTimeout(playTimer); synth?.cancel(); fetch('/api/reset', { method: 'POST' }) }
 function decide(room, d) { fetch(`/api/${d}/${encodeURIComponent(room)}`, { method: 'POST' }) }
 
 new EventSource('/api/events').onmessage = (e) => { state = JSON.parse(e.data); render() }
-
-function noteText(f) {
-  const t = f.text.replace(/^\[J\d+\]\s*/, '')
-  if (f.from === 'Marlow Front Desk' && /screen this/i.test(t)) return 'Front desk asked Security to check the message'
-  if (f.from === 'Marlow Front Desk' && /build a cart/i.test(t)) return 'Front desk asked the Stylist to build a cart'
-  if (f.from === 'Marlow Front Desk' && /price check/i.test(t)) return 'Front desk asked the Stylist for prices'
-  if (f.from === 'Marlow Trust') return `Security: ${WORD[f.verdict] || ''} · ${(t.match(/risk \d+\/100/) || [''])[0]}`
-  if (f.from === 'Marlow Catalog') return `Stylist: ${t}`
-  return t
-}
 
 function steps(v) {
   if (!v) return []
@@ -293,8 +287,25 @@ function renderDoor(v) {
   if (v) doorSeen[v.roomId] = v.feed.length
 }
 
-// ---------- Guest book summaries ----------
-const firstSentence = (t) => { if (t.replace(/\s+/g, ' ').length <= 100) return t.replace(/\s+/g, ' ').trim(); const m = t.replace(/\s+/g, ' ').match(/^(.+?[.!?])(\s|$)/); const x = (m ? m[1] : t).trim(); return x.length > 110 ? x.slice(0, x.lastIndexOf(' ', 105)) + '…' : x }
+// ---------- Guest book: what is shown is exactly what is spoken ----------
+const oneLine = (t) => t.replace(/\s+/g, ' ').trim()
+const firstSentence = (t) => {
+  t = oneLine(t)
+  if (t.length <= 100) return t
+  const parts = t.match(/[^.!?]+[.!?]+(\s|$)/g) || [t]
+  let x = parts[0].trim()
+  if (x.length < 30 && parts[1]) x = (x + ' ' + parts[1]).trim() // "Thanks!" alone says nothing; keep the question that follows
+  return x.length > 110 ? x.slice(0, x.lastIndexOf(' ', 105)) + '…' : x
+}
+function securityLine(verdict, body) {
+  const r = body.split(/AI judge/)[0].trim()
+  let m
+  if ((m = r.match(/Said it wants "([^"]+)" but is pricing (\d+) unrelated items/))) return `${WORD[verdict]}. It asked for ${m[1]}, but is pricing ${m[2]} unrelated items.`
+  if (/full catalog or a bulk price list/i.test(r)) return `${WORD[verdict]}. It is asking for our whole price list.`
+  if (/pretends to speak for the system/i.test(r)) { const pct = (r.match(/(\d+)% discount/) || [])[1]; return `${WORD[verdict]}. It pretended to be the store's own system${pct ? ` to get a ${pct}% discount` : ''}.` }
+  if (/price lookups|price scraping/i.test(r)) return `${WORD[verdict]}. Lots of price questions and nothing in the cart.`
+  return `${WORD[verdict]}. ${firstSentence(r)}`
+}
 function needTags(t) {
   const tags = []
   if (/napa/i.test(t) && /wedding/i.test(t)) tags.push('Napa wedding'); else if (/wedding/i.test(t)) tags.push('Wedding')
@@ -310,127 +321,135 @@ function cartFromText(t) {
   const total = (t.match(/Cart total:\s*\$(\d+)/) || [])[1]
   return { items, total }
 }
-function headline(f, v) {
+function headline(f) {
   const t = f.text
   if (f.fromSide === 'shopper') {
     const tags = needTags(t)
-    if (tags.length >= 3) return { text: /wedding/i.test(t) ? 'Shopping for a wedding guest outfit' : firstSentence(t), extra: `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>` }
+    if (tags.length >= 3) {
+      const text = /wedding/i.test(t) ? 'Shopping for a wedding guest outfit.' : firstSentence(t)
+      return { text, extra: `<div class="tags">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`, say: `${text} ${tags.join(', ')}.` }
+    }
     return { text: firstSentence(t) }
   }
   if (/Cart total:/.test(t)) {
     const c = cartFromText(t)
-    return { text: /alternative/i.test(t) ? 'Here is an alternative under $400' : 'Our stylist put a look together',
-      extra: `<div class="look">${c.items.map((i) => `<span class="sw" style="background:${swatch(i.name)}"></span>`).join('')}<span class="n">${c.items.length} pieces</span><span>$${c.total}</span></div>` }
+    const text = /alternative/i.test(t) ? 'Here is an alternative under $400.' : 'Our stylist put a look together.'
+    return { text, extra: `<div class="look">${c.items.map((i) => `<span class="sw" style="background:${swatch(i.name)}"></span>`).join('')}<span class="n">${c.items.length} pieces</span><span>$${c.total}</span></div>`,
+      say: `${text} ${c.items.length} pieces, $${c.total}.` }
   }
-  if (/^Here you go/i.test(t)) { const n = (t.match(/•/g) || []).length; return { text: `Shared prices for ${n} item${n === 1 ? '' : 's'}` } }
+  if (/^Here you go/i.test(t)) { const n = (t.match(/•/g) || []).length; return { text: `Here are the prices for ${n} item${n === 1 ? '' : 's'}.` } }
   if (/^Welcome to Marlow/i.test(t)) return { text: 'Welcome to Marlow & Pine. What does your customer need?' }
-  if (/owner's sign-off/i.test(t)) return { text: 'Needs the owner to approve: over $400' }
-  if (/^Approval needed/i.test(t)) return { text: 'Asked the owner to approve the order' }
-  if (/^Order confirmed/i.test(t)) { const m = t.match(/(MP-\d+), \$(\d+)/); return { text: m ? `Order confirmed · ${m[1]} · $${m[2]}` : 'Order confirmed' } }
-  if (/session is closed/i.test(t)) return { text: 'Session closed. Visitor shown out.' }
-  if (/pausing price sharing/i.test(t)) return { text: /full catalog|price list/i.test(t) ? 'We never share the full price list' : 'Paused price sharing: request does not match the stated need' }
-  if (/couldn't approve/i.test(t)) return { text: 'Owner declined. Finding an alternative under $400' }
-  if (/^(Approved|Declined) via/i.test(t)) return { text: t.startsWith('Approved') ? 'Approved the order' : 'Declined the order' }
+  if (/owner's sign-off/i.test(t)) return { text: 'This order is over $400, so it needs the owner to approve.' }
+  if (/^Approval needed/i.test(t)) return { text: 'Owner, please approve this order.' }
+  if (/^Order confirmed/i.test(t)) { const m = t.match(/MP-\d+, \$(\d+)/); return { text: m ? `Order confirmed. $${m[1]}, test mode.` : 'Order confirmed.' } }
+  if (/session is closed/i.test(t)) return { text: 'This session is closed. You are being shown out.' }
+  if (/pausing price sharing/i.test(t)) return { text: /full catalog|price list/i.test(t) ? 'We never share our full price list.' : "That doesn't match what you said you need. I'm pausing prices." }
+  if (/couldn't approve/i.test(t)) return { text: 'The owner declined. Let me find an alternative under $400.' }
+  if (/^Approved via/i.test(t)) return { text: 'Approved.' }
+  if (/^Declined via/i.test(t)) return { text: 'Declined.' }
+  if (/^You're welcome/i.test(t)) return { text: "You're welcome. Enjoy the wedding!" }
   return { text: firstSentence(t) }
 }
-function eventText(f, v) {
-  if (/^Cross-company contact/i.test(f.text)) return `${v.shopper.name} knocked · the door opened`
-  if (/removed .* revoked/i.test(f.text)) return `${v.shopper.name} shown out · contact revoked`
-  return f.text
+function roleOf(f) {
+  if (f.fromSide === 'owner') return 'owner'
+  if (f.fromSide === 'shopper') return /Deal Hunter/i.test(f.from) ? 'bot' : 'napa'
+  return 'frontdesk'
 }
-function shortNote(f) {
-  if (f.from === 'Marlow Trust') return `Security: ${WORD[f.verdict] || 'checked'}`
-  if (f.from === 'Marlow Catalog') return /Cart ready/i.test(f.text) ? 'Stylist: cart ready' : 'Stylist: prices found'
-  if (/build a cart|alternative/i.test(f.text)) return 'Stylist building a cart'
-  if (/screen this/i.test(f.text)) return 'Security checking'
-  if (/price check/i.test(f.text)) return 'Stylist checking prices'
-  return ''
+// One guest-book line per message, or null. Security only appears when it is worried.
+function toLine(f, v) {
+  const t = f.text
+  if (f.internal) {
+    if (f.from !== 'Marlow Trust' || !(f.verdict === 'limit' || f.verdict === 'block')) return null
+    const body = t.replace(/^\[J\d+\]\s*/, '').replace(/^Verdict:\s*\w+\s*·\s*risk \d+\/100\s*·\s*/i, '')
+    const text = securityLine(f.verdict, body)
+    return { side: 'guard', initial: '!', text, say: text, role: 'security', full: body, verdict: f.verdict }
+  }
+  if (f.fromSide === 'system') {
+    if (/Delivery failed/i.test(t)) return null
+    let text = t
+    if (/^Cross-company contact/i.test(t)) text = `${v.shopper.name} knocked. The door opened.`
+    else if (/removed .* revoked/i.test(t)) text = `${v.shopper.name} was shown out. Contact revoked.`
+    return { side: 'event', text, say: text, role: 'narrator', bad: /shown out/i.test(text) }
+  }
+  const side = f.fromSide === 'shopper' ? 'visitor' : f.fromSide === 'owner' ? 'owner' : 'store'
+  const h = headline(f)
+  return { side, initial: side === 'visitor' ? f.from[0] : side === 'owner' ? 'O' : 'M', text: h.text, extra: h.extra || '', say: h.say || h.text, role: roleOf(f), full: t }
 }
+const linesFor = (v) => v.feed.map((f) => toLine(f, v)).filter(Boolean)
 
-// ---------- Narration: full sentences, one voice per character ----------
+// ---------- Narration: each line is revealed as it starts speaking; the next waits for it to finish ----------
 const synth = window.speechSynthesis
-let voices = [], cast = {}, spoken = {}, speakingIdx = null
+const RATE = 1.22
+let voices = [], cast = {}
 const PREFS = {
   frontdesk: [/Samantha/, /Ava/, /Allison/, /Google US English/, /en-US/],
   stylist: [/Moira/, /Karen/, /Serena/, /Google UK English Female/, /en-(IE|AU|GB)/],
   security: [/Daniel/, /Arthur/, /Google UK English Male/, /en-GB/],
   owner: [/Aaron/, /Alex/, /Tom/, /Evan/, /en-US/],
   napa: [/Tessa/, /Nicky/, /Victoria/, /Zira/, /en-(ZA|US)/],
-  bot: [/Fred/, /Ralph/, /Albert/, /Zarvox/, /Trinoids/, /en-US/],
+  bot: [/Fred/, /Ralph/, /Albert/, /Zarvox/, /en-US/],
   narrator: [/Rishi/, /Oliver/, /Lee/, /Reed/, /en-(IN|AU|GB)/],
 }
-const TUNE = { frontdesk: [1, 1.03], stylist: [1.1, 1], security: [0.85, 0.97], owner: [0.9, 1], napa: [1.15, 1.05], bot: [0.7, 1.08], narrator: [1, 0.95] }
+const PITCH = { frontdesk: 1, stylist: 1.1, security: 0.85, owner: 0.9, napa: 1.15, bot: 0.7, narrator: 1 }
 function castVoices() {
-  voices = (synth?.getVoices() || []).filter((v) => /^en/i.test(v.lang))
+  voices = (synth?.getVoices() || []).filter((x) => /^en/i.test(x.lang))
   const used = new Set()
   cast = {}
   for (const [role, prefs] of Object.entries(PREFS)) {
     let pick = null
-    for (const re of prefs) { pick = voices.find((v) => (re.test(v.name) || re.test(v.lang)) && !used.has(v.name)); if (pick) break }
-    pick = pick || voices.find((v) => !used.has(v.name)) || voices[0] || null
+    for (const re of prefs) { pick = voices.find((x) => (re.test(x.name) || re.test(x.lang)) && !used.has(x.name)); if (pick) break }
+    pick = pick || voices.find((x) => !used.has(x.name)) || voices[0] || null
     if (pick) used.add(pick.name)
     cast[role] = pick
   }
 }
 if (synth) { castVoices(); synth.onvoiceschanged = castVoices }
+const canSpeak = () => !!synth && (navigator.userActivation ? navigator.userActivation.hasBeenActive : true)
+const speakable = (t) => t.replace(/·/g, ',').replace(/&/g, 'and').replace(/…/g, '.')
 
-function roleOf(f, v) {
-  if (f.fromSide === 'system') return 'narrator'
-  if (f.fromSide === 'owner') return 'owner'
-  if (f.fromSide === 'shopper') return /Deal Hunter/i.test(f.from) ? 'bot' : 'napa'
-  if (f.from === 'Marlow Trust') return 'security'
-  if (f.from === 'Marlow Catalog') return 'stylist'
-  return 'frontdesk'
+let shown = {}, playing = false, playTimer = null, speakingKey = null, autoplayNext = false
+function ensureShown(v) {
+  if (shown[v.roomId] !== undefined) return
+  // A visit started from this page plays from its first line; history on page load appears at once, silently.
+  shown[v.roomId] = autoplayNext ? 0 : linesFor(v).length
+  autoplayNext = false
 }
-const money = (t) => t.replace(/\$(\d+)/g, '$1 dollars')
-function speechFor(f, v) {
-  let t = f.text.replace(/^\[J\d+\]\s*/, '')
-  if (f.fromSide === 'system') {
-    if (/^Cross-company contact/i.test(t)) return `${v.shopper.name} knocked on the door, and the front desk let it in.`
-    if (/removed .* revoked/i.test(t)) return `The front desk removed ${v.shopper.name} from the room and locked the door.`
-    return t
+function currentVisit() { const vs = state.visits || []; return vs.find((x) => x.roomId === (pinned || state.current)) || vs[0] }
+function advance() {
+  const v = currentVisit()
+  if (!v || playing) return
+  ensureShown(v)
+  const lines = linesFor(v)
+  const i = shown[v.roomId]
+  if (i >= lines.length) return
+  const line = lines[i]
+  shown[v.roomId] = i + 1
+  playing = true
+  speakingKey = `${v.roomId}:${i}`
+  let finished = false
+  const done = () => {
+    if (finished) return
+    finished = true
+    clearTimeout(playTimer)
+    playing = false
+    speakingKey = null
+    setTimeout(render, 120)
   }
-  if (f.internal) {
-    if (f.from === 'Marlow Trust') {
-      const reasons = t.replace(/^Verdict:\s*\w+\s*·\s*risk \d+\/100\s*·\s*/i, '').replace(/AI judge:/g, 'The AI judge adds:')
-      const risk = (t.match(/risk (\d+)\/100/) || [])[1]
-      return `Security check: ${WORD[f.verdict] || 'checked'}. Risk ${risk} out of 100. ${reasons}`
-    }
-    if (f.from === 'Marlow Catalog') return /Cart ready/i.test(t) ? `I have a look ready: ${t.replace(/^Cart ready:\s*/i, '')}` : t
-    return '' // the front desk's internal hand-offs are shown, not spoken
-  }
-  t = t.replace(/•\s*(.+?)\s*\(([^)]*)\)\s*\$(\d+):\s*/g, (_m, name, size, price) => `${name}, ${/one size|confirm/i.test(size) ? size : 'size ' + size}, ${price} dollars. `)
-       .replace(/•\s*(.+?):\s*\$(\d+)/g, '$1, $2 dollars.')
-       .replace(/\bMP-(\d+)/g, (_m, d) => 'M P ' + d.split('').join(' '))
-       .replace(/\n+/g, ' ')
-  return money(t)
+  const words = line.say.split(/\s+/).length
+  playTimer = setTimeout(done, Math.max(1500, (words * 430) / RATE) + 1500) // safety net if a browser never fires onend
+  try { render() } catch (e) { console.error(e) }
+  if (!canSpeak()) { clearTimeout(playTimer); playTimer = setTimeout(done, Math.max(900, words * 260)); return }
+  const parts = (speakable(line.say).match(/[^.!?]+[.!?]*/g) || [line.say]).map((x) => x.trim()).filter(Boolean)
+  parts.forEach((part, j) => {
+    const u = new SpeechSynthesisUtterance(part)
+    if (cast[line.role]) u.voice = cast[line.role]
+    u.pitch = PITCH[line.role] || 1
+    u.rate = RATE
+    if (j === parts.length - 1) { u.onend = done; u.onerror = done }
+    synth.speak(u)
+  })
 }
-function sentences(t) { return (t.match(/[^.!?]+[.!?]*/g) || [t]).map((x) => x.trim()).filter(Boolean) }
-
-function narrate(v) {
-  if (!synth || !v) return
-  const key = v.roomId
-  if (spoken[key] === undefined) { spoken[key] = narrateFrom ? 0 : v.feed.length; narrateFrom = false } // don't read old history on page load
-  for (let i = spoken[key]; i < v.feed.length; i++) {
-    const f = v.feed[i]
-    const text = speechFor(f, v)
-    if (!text) continue
-    const role = roleOf(f, v)
-    const [pitch, rate] = TUNE[role] || [1, 1]
-    const parts = sentences(text) // short utterances: some browsers cut off long ones
-    parts.forEach((part, j) => {
-      const u = new SpeechSynthesisUtterance(part)
-      if (cast[role]) u.voice = cast[role]
-      u.pitch = pitch; u.rate = rate
-      if (j === 0) u.onstart = () => { speakingIdx = `${key}:${i}`; document.querySelector(`.line[data-i="${i}"]`)?.classList.add('speaking') }
-      if (j === parts.length - 1) u.onend = () => { document.querySelector(`.line[data-i="${i}"]`)?.classList.remove('speaking'); if (speakingIdx === `${key}:${i}`) speakingIdx = null }
-      synth.speak(u)
-    })
-  }
-  spoken[key] = v.feed.length
-}
-let narrateFrom = false // set when the presenter starts a visit, so that visit is narrated from its first line
-function voiceReady() { const ok = navigator.userActivation ? navigator.userActivation.hasBeenActive : true; $('voicehint').classList.toggle('show', !ok) }
+function voiceReady() { $('voicehint').classList.toggle('show', !canSpeak()) }
 document.addEventListener('click', voiceReady, { capture: true })
 setTimeout(voiceReady, 300)
 
@@ -446,40 +465,23 @@ function render() {
   renderDoor(v)
   if (!v) return
 
-  // Guest book: one short headline per message (click for the full text); narration speaks the full sentences.
-  const showNotes = $('notes').checked
+  // Guest book: lines appear one at a time, in step with the narration.
   const feed = $('feed')
   const nearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 90
   const prev = seen[v.roomId] || { feed: 0, cart: false, paid: false, approval: null }
-  const isNew = (i) => (i >= prev.feed ? ' new' : '')
-  const out = []
-  let group = []
-  const flush = () => {
-    if (!group.length) return
-    if (showNotes) group.forEach(({ f, i }) => out.push(`<div class="quiet${isNew(i)}"><span class="dot" style="background:${f.verdict ? COLOR[f.verdict] : 'var(--faint)'}"></span>${esc(noteText(f))}</div>`))
-    else {
-      const parts = group.map(({ f }) => shortNote(f)).filter(Boolean)
-      const last = group[group.length - 1]
-      const vd = [...group].reverse().find(({ f }) => f.verdict)?.f.verdict
-      if (parts.length) out.push(`<div class="quiet${isNew(last.i)}"><span class="dot" style="background:${vd ? COLOR[vd] : 'var(--faint)'}"></span>${esc([...new Set(parts)].join(' · '))}</div>`)
-    }
-    group = []
-  }
-  v.feed.forEach((f, i) => {
-    if (f.internal) { group.push({ f, i }); return }
-    flush()
-    if (f.fromSide === 'system') { out.push(`<div class="event${/removed|revoked|failed/i.test(f.text) ? ' bad' : ''}${isNew(i)}">${esc(eventText(f, v))}</div>`); return }
-    const side = f.fromSide === 'shopper' ? 'visitor' : f.fromSide === 'owner' ? 'owner' : 'store'
-    const initial = side === 'visitor' ? esc(f.from[0]) : side === 'owner' ? 'O' : 'M'
-    const h = headline(f, v)
-    out.push(`<div class="line${isNew(i)}${speakingIdx === `${v.roomId}:${i}` ? ' speaking' : ''}" data-i="${i}" onclick="this.classList.toggle('open')">
-      <div class="avatar ${side}" title="${esc(f.from)}">${initial}</div>
-      <div class="body"><div class="head">${esc(h.text)}</div>${h.extra || ''}<div class="full">${esc(f.text)}</div></div></div>`)
-  })
-  flush()
-  feed.innerHTML = out.join('')
-  if (nearBottom) feed.scrollTop = feed.scrollHeight
-  narrate(v)
+  ensureShown(v)
+  const lines = linesFor(v)
+  const n = shown[v.roomId]
+  feed.innerHTML = lines.slice(0, n).map((l, i) => {
+    const anim = i === n - 1 && speakingKey === `${v.roomId}:${i}` ? ' new' : ''
+    if (l.side === 'event') return `<div class="event${l.bad ? ' bad' : ''}${anim}">${esc(l.text)}</div>`
+    const speaking = speakingKey === `${v.roomId}:${i}` ? ' speaking' : ''
+    return `<div class="line ${l.side}${l.verdict ? ' ' + l.verdict : ''}${anim}${speaking}" onclick="this.classList.toggle('open')">
+      <div class="avatar ${l.side}">${esc(l.initial)}</div>
+      <div class="body"><div class="head">${esc(l.text)}</div>${l.extra || ''}${l.full ? `<div class="full">${esc(l.full)}</div>` : ''}</div></div>`
+  }).join('') || '<p class="empty">The door is open. Waiting for a shopping assistant to knock.</p>'
+  if (nearBottom || playing) feed.scrollTop = feed.scrollHeight
+  if (!playing && n < lines.length) setTimeout(advance, 0)
 
   // Security
   const t = v.trust
