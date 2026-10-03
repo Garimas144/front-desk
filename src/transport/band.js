@@ -15,7 +15,8 @@ const ENV = {
 // id <-> handle registry shared by all identities in this process
 const handleById = new Map()
 const idByHandle = new Map()
-const remember = (id, handle) => { if (id && handle) { handleById.set(id, handle); idByHandle.set(handle, id) } }
+const norm = (h) => (h ? String(h).replace(/^@/, '') : h)
+const remember = (id, handle) => { if (id && handle) { handleById.set(id, norm(handle)); idByHandle.set(norm(handle), id) } }
 
 export function createBandTransport() {
   function connect({ role, name, handle }) {
@@ -25,7 +26,7 @@ export function createBandTransport() {
     if (!agentId || !apiKey) throw new Error(`Missing ${idVar}/${keyVar} in .env`)
     const ev = new EventEmitter()
     const rest = new BandClient({ apiKey })
-    const self = { id: agentId, name, handle }
+    const self = { id: agentId, name, handle: norm(handle) }
     remember(agentId, handle)
 
     const adapter = new GenericAdapter(async ({ message, roomId }) => {
@@ -42,8 +43,8 @@ export function createBandTransport() {
         strategy: 'callback',
         onEvent: async (e) => {
           const p = e.payload || {}
-          if (e.type === 'contact_request_received') ev.emit('contact_request', { id: p.id, fromHandle: p.from_handle, fromName: p.from_name, message: p.message })
-          else if (e.type === 'contact_added') { remember(p.id, p.handle); ev.emit('contact_added', { id: p.id, handle: p.handle, name: p.name }) }
+          if (e.type === 'contact_request_received') { console.log(`[band] ${name} got contact request`, JSON.stringify(p)); ev.emit('contact_request', { id: p.id, fromHandle: norm(p.from_handle), fromName: p.from_name, message: p.message }) }
+          else if (e.type === 'contact_added') { console.log(`[band] ${name} contact added`, JSON.stringify(p)); ev.emit('contact_added', { id: p.id, handle: norm(p.handle), name: p.name }) }
           else if (e.type === 'contact_removed') ev.emit('contact_removed', { id: p.id })
         },
       },
@@ -51,14 +52,20 @@ export function createBandTransport() {
       onParticipantRemoved: (roomId, pid) => { if (pid === agentId) ev.emit('room_removed', roomId) },
     })
 
-    // Resolve a contact's participant id from its handle (contact ids and agent ids are different things).
-    async function resolveId(h, hint) {
+    // Resolve a participant's agent/user id from its handle via the peers registry
+    // (contact records have their own ids, which rooms do not accept).
+    async function resolveId(h) {
+      h = norm(h)
       if (idByHandle.has(h)) return idByHandle.get(h)
       try {
-        const res = await rest.agentApiContacts.listAgentContacts({})
-        for (const c of res.data || []) remember(c.contact_id || c.id, c.handle)
-      } catch (e) { console.warn('[band] listContacts', e.message) }
-      return idByHandle.get(h) || hint
+        for (let page = 1; page <= 5; page++) {
+          const r = await rest.agentApiPeers.listAgentPeers({ page })
+          const rows = r.data || []
+          for (const p of rows) remember(p.id, p.handle)
+          if (idByHandle.has(h) || rows.length === 0 || page >= (r.metadata?.total_pages || 1)) break
+        }
+      } catch (e) { console.warn('[band] listPeers', e.message) }
+      return idByHandle.get(h)
     }
 
     const api = {
@@ -73,7 +80,7 @@ export function createBandTransport() {
       async start() {
         const me = await rest.agentApiIdentity.getAgentMe()
         const d = me.data || me
-        if (d.handle) { self.handle = d.handle; remember(agentId, d.handle) }
+        if (d.handle) { self.handle = norm(d.handle); remember(agentId, d.handle) }
         console.log(`[band] ${name} online as ${self.handle}`)
         agent.start().catch((e) => console.error(`[band] ${name} runtime failed`, e))
       },
@@ -82,8 +89,8 @@ export function createBandTransport() {
       async send(roomId, content, mentionHandles = []) {
         const mentions = await Promise.all(
           mentionHandles.map(async (h) => {
-            const id = idByHandle.get(h)
-            return id ? { id } : { handle: h }
+            const id = idByHandle.get(norm(h))
+            return id ? { id } : { handle: norm(h) }
           }),
         )
         return rest.agentApiMessages.createAgentChatMessage(roomId, { message: { content, mentions } })
@@ -93,23 +100,23 @@ export function createBandTransport() {
         return (r.data || r).id
       },
       async addParticipant(roomId, h, idHint) {
-        const id = idHint || (await resolveId(h))
+        const id = (await resolveId(h)) || idHint
         if (!id) throw new Error(`Cannot resolve participant id for ${h}`)
         await rest.agentApiParticipants.addAgentChatParticipant(roomId, { participant: { participant_id: id, role: 'member' } })
       },
       async removeParticipant(roomId, h, idHint) {
-        const id = idHint || (await resolveId(h))
+        const id = (await resolveId(h)) || idHint
         await rest.agentApiParticipants.removeAgentChatParticipant(roomId, id)
       },
       async requestContact(toHandle, message) {
-        const r = await rest.agentApiContacts.addAgentContact({ handle: toHandle, message })
+        const r = await rest.agentApiContacts.addAgentContact({ handle: '@' + norm(toHandle), message })
         return r.data || r
       },
       async respondContact(req, action) {
         await rest.agentApiContacts.respondToAgentContactRequest({ action, ...(req.id ? { request_id: req.id } : { handle: req.fromHandle }) })
       },
       async removeContact(h) {
-        await rest.agentApiContacts.removeAgentContact({ handle: h })
+        await rest.agentApiContacts.removeAgentContact({ handle: '@' + norm(h) })
       },
     }
     Object.defineProperty(api, 'handle', { get: () => self.handle, enumerable: true })

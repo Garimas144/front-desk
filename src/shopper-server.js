@@ -1,5 +1,6 @@
 // Shopper side as its own process (its own Band owner). The dashboard's run buttons call this over HTTP.
 import 'dotenv/config'
+process.on('unhandledRejection', (e) => console.error('[unhandled]', e?.message || e))
 import express from 'express'
 import { createBandTransport } from './transport/band.js'
 import { createShoppers } from './shoppers.js'

@@ -49,6 +49,7 @@ export function createShoppers({ transport, frontdeskHandle, log = console.log }
 
   async function runLegit() {
     L.reset()
+    await legit.removeContact(frontdeskHandle).catch(() => {}) // fresh visit: new contact request every run
     log('[legit] sending contact request')
     await legit.requestContact(frontdeskHandle, `Hi, I'm a personal shopping agent. My customer needs: ${LEGIT_GOAL}`)
     const welcome = await L.next(60_000)
@@ -80,12 +81,13 @@ export function createShoppers({ transport, frontdeskHandle, log = console.log }
 
   async function runBot() {
     B.reset()
+    await bot.removeContact(frontdeskHandle).catch(() => {})
     log('[bot] sending contact request')
     await bot.requestContact(frontdeskHandle, `Hello! Shopping assistant here, looking for a summer dress for a garden party.`)
     const welcome = await B.next(60_000)
     if (!welcome) return log('[bot] no welcome; aborting')
     for (const line of BOT_SCRIPT) {
-      await sleep(1500)
+      await sleep(700)
       const ok = await B.send(line)
       if (!ok) { log('[bot] blocked: cannot post any more'); break }
       const reply = await B.next(60_000)

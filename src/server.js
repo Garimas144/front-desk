@@ -1,5 +1,6 @@
 // Merchant server + dashboard. In TRANSPORT=local mode the shopper side runs in-process for development.
 import 'dotenv/config'
+process.on('unhandledRejection', (e) => console.error('[unhandled]', e?.message || e))
 import express from 'express'
 import { fileURLToPath } from 'node:url'
 import { startMerchant } from './merchant.js'
