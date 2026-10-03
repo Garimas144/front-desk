@@ -362,18 +362,39 @@ function toLine(f, v) {
     if (f.from !== 'Marlow Trust' || !(f.verdict === 'limit' || f.verdict === 'block')) return null
     const body = t.replace(/^\[J\d+\]\s*/, '').replace(/^Verdict:\s*\w+\s*·\s*risk \d+\/100\s*·\s*/i, '')
     const text = securityLine(f.verdict, body)
-    return { side: 'guard', initial: '!', text, say: text, role: 'security', full: body, verdict: f.verdict }
+    return { side: 'guard', initial: '!', text, say: fullSpeech(f, v), role: 'security', full: body, verdict: f.verdict }
   }
   if (f.fromSide === 'system') {
     if (/Delivery failed/i.test(t)) return null
     let text = t
     if (/^Cross-company contact/i.test(t)) text = `${v.shopper.name} knocked. The door opened.`
     else if (/removed .* revoked/i.test(t)) text = `${v.shopper.name} was shown out. Contact revoked.`
-    return { side: 'event', text, say: text, role: 'narrator', bad: /shown out/i.test(text) }
+    return { side: 'event', text, say: fullSpeech(f, v), role: 'narrator', bad: /shown out/i.test(text) }
   }
   const side = f.fromSide === 'shopper' ? 'visitor' : f.fromSide === 'owner' ? 'owner' : 'store'
   const h = headline(f)
-  return { side, initial: side === 'visitor' ? f.from[0] : side === 'owner' ? 'O' : 'M', text: h.text, extra: h.extra || '', say: h.say || h.text, role: roleOf(f), full: t }
+  return { side, initial: side === 'visitor' ? f.from[0] : side === 'owner' ? 'O' : 'M', text: h.text, extra: h.extra || '', say: fullSpeech(f, v), role: roleOf(f), full: t }
+}
+
+// The voice reads the full message in natural sentences; the screen keeps the short headline.
+function fullSpeech(f, v) {
+  let t = f.text.replace(/^\[J\d+\]\s*/, '')
+  if (f.fromSide === 'system') {
+    if (/^Cross-company contact/i.test(t)) return `${v.shopper.name}, from another company, knocked on the door. The front desk checked the request and let it in.`
+    if (/removed .* revoked/i.test(t)) return `The front desk removed ${v.shopper.name} from the room, revoked its contact, and logged the reason.`
+    return t
+  }
+  if (f.internal && f.from === 'Marlow Trust') {
+    const body = t.replace(/^Verdict:\s*\w+\s*·\s*risk (\d+)\/100\s*·\s*/i, '').replace(/AI judge escalated this visit\.\s*/g, '').replace(/AI judge:/g, 'The AI judge agrees:')
+    const risk = (t.match(/risk (\d+)\/100/) || [])[1]
+    return `Security here. ${WORD[f.verdict]}. Risk ${risk} out of 100. ${body}`
+  }
+  return t
+    .replace(/•\s*(.+?)\s*\(([^)]*)\)\s*\$(\d+):\s*/g, (_m, name, size, price) => `${name}, ${/one size|confirm/i.test(size) ? size : 'size ' + size}, $${price}. `)
+    .replace(/•\s*(.+?):\s*\$(\d+)/g, '$1, $$$2.')
+    .replace(/\bMP-(\d+)/g, (_m, d) => 'M P ' + d.split('').join(' '))
+    .replace(/\(test mode\)/gi, 'in test mode')
+    .replace(/\n+/g, ' ')
 }
 const linesFor = (v) => v.feed.map((f) => toLine(f, v)).filter(Boolean)
 
