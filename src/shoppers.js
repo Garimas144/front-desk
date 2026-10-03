@@ -54,8 +54,9 @@ export function createShoppers({ transport, frontdeskHandle, log = console.log }
     await legit.requestContact(frontdeskHandle, `Hi, I'm a personal shopping agent. My customer needs: ${LEGIT_GOAL}`)
     const welcome = await L.next(60_000)
     if (!welcome) return log('[legit] no welcome; aborting')
-    await L.send(await phrase(L.state.room, 'Tell the store exactly what your customer needs (occasion, sizes, colors, budget).',
-      `My customer needs an outfit for a wedding in Napa next month: size M, shoe size 8, earth tones, budget up to $550. A dress, shoes, and a light layer for the evening.`))
+    // The model writes a natural opener; the requirements are always stated exactly so the visit is reproducible.
+    const opener = await phrase(L.state.room, 'Write one short, friendly sentence greeting the store and saying you are shopping for a wedding guest outfit. No sizes or prices. Do not use dashes.', 'Hi! I am shopping for a wedding guest outfit.')
+    await L.send(`${opener.replace(/[\u2013\u2014]/g, ',')} My customer needs: a wedding in Napa next month, size M, shoe size 8, earth tones, budget up to $550. A dress, shoes, and a light layer for the evening.`)
     let cart = await L.next(90_000)
     while (cart && !/Cart total/i.test(cart)) cart = await L.next(90_000)
     if (!cart) return log('[legit] no cart; aborting')
