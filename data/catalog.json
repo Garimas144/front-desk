@@ -1,0 +1,813 @@
+[
+  {
+    "id": "MP-101",
+    "name": "Terracotta Satin Midi Dress",
+    "category": "dresses",
+    "price": 248,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "terracotta"
+    ],
+    "tags": [
+      "wedding guest",
+      "occasion",
+      "satin",
+      "earth tone",
+      "midi"
+    ],
+    "stock": 4
+  },
+  {
+    "id": "MP-102",
+    "name": "Olive Silk Wrap Dress",
+    "category": "dresses",
+    "price": 265,
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "colors": [
+      "olive"
+    ],
+    "tags": [
+      "wedding guest",
+      "occasion",
+      "silk",
+      "earth tone",
+      "wrap"
+    ],
+    "stock": 7
+  },
+  {
+    "id": "MP-103",
+    "name": "Rust Pleated Maxi Dress",
+    "category": "dresses",
+    "price": 289,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "rust"
+    ],
+    "tags": [
+      "wedding guest",
+      "occasion",
+      "maxi",
+      "earth tone",
+      "vineyard"
+    ],
+    "stock": 12
+  },
+  {
+    "id": "MP-104",
+    "name": "Sage Linen Slip Dress",
+    "category": "dresses",
+    "price": 178,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "sage"
+    ],
+    "tags": [
+      "summer",
+      "garden party",
+      "linen",
+      "earth tone"
+    ],
+    "stock": 3
+  },
+  {
+    "id": "MP-105",
+    "name": "Black Column Gown",
+    "category": "dresses",
+    "price": 395,
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "black"
+    ],
+    "tags": [
+      "black tie",
+      "evening",
+      "gown"
+    ],
+    "stock": 9
+  },
+  {
+    "id": "MP-106",
+    "name": "Cobalt Cocktail Dress",
+    "category": "dresses",
+    "price": 215,
+    "sizes": [
+      "XS",
+      "S",
+      "M"
+    ],
+    "colors": [
+      "cobalt"
+    ],
+    "tags": [
+      "cocktail",
+      "party",
+      "bold"
+    ],
+    "stock": 15
+  },
+  {
+    "id": "MP-107",
+    "name": "Ivory Lace Sheath",
+    "category": "dresses",
+    "price": 310,
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "ivory"
+    ],
+    "tags": [
+      "bridal",
+      "lace"
+    ],
+    "stock": 6
+  },
+  {
+    "id": "MP-108",
+    "name": "Floral Tea Dress",
+    "category": "dresses",
+    "price": 158,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "colors": [
+      "blush floral"
+    ],
+    "tags": [
+      "garden party",
+      "day",
+      "floral"
+    ],
+    "stock": 10
+  },
+  {
+    "id": "MP-109",
+    "name": "Camel Wool Coat",
+    "category": "outerwear",
+    "price": 420,
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "camel"
+    ],
+    "tags": [
+      "winter",
+      "wool",
+      "classic"
+    ],
+    "stock": 4
+  },
+  {
+    "id": "MP-110",
+    "name": "Cream Cropped Blazer",
+    "category": "outerwear",
+    "price": 198,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "cream"
+    ],
+    "tags": [
+      "work",
+      "tailored"
+    ],
+    "stock": 7
+  },
+  {
+    "id": "MP-111",
+    "name": "Mocha Cashmere Wrap",
+    "category": "outerwear",
+    "price": 145,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "mocha"
+    ],
+    "tags": [
+      "wrap",
+      "evening",
+      "cashmere",
+      "earth tone",
+      "layer"
+    ],
+    "stock": 12
+  },
+  {
+    "id": "MP-112",
+    "name": "Moss Knit Shawl",
+    "category": "outerwear",
+    "price": 96,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "moss"
+    ],
+    "tags": [
+      "shawl",
+      "layer",
+      "earth tone",
+      "evening"
+    ],
+    "stock": 3
+  },
+  {
+    "id": "MP-113",
+    "name": "Black Leather Moto Jacket",
+    "category": "outerwear",
+    "price": 360,
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "black"
+    ],
+    "tags": [
+      "leather",
+      "edgy"
+    ],
+    "stock": 9
+  },
+  {
+    "id": "MP-114",
+    "name": "Navy Trench Coat",
+    "category": "outerwear",
+    "price": 298,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "navy"
+    ],
+    "tags": [
+      "rain",
+      "classic"
+    ],
+    "stock": 15
+  },
+  {
+    "id": "MP-115",
+    "name": "Cognac Block-Heel Sandal",
+    "category": "shoes",
+    "price": 138,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "colors": [
+      "cognac"
+    ],
+    "tags": [
+      "wedding guest",
+      "heel",
+      "earth tone",
+      "vineyard-friendly"
+    ],
+    "stock": 6
+  },
+  {
+    "id": "MP-116",
+    "name": "Bronze Strappy Heel",
+    "category": "shoes",
+    "price": 165,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "colors": [
+      "bronze"
+    ],
+    "tags": [
+      "evening",
+      "heel",
+      "metallic",
+      "earth tone"
+    ],
+    "stock": 10
+  },
+  {
+    "id": "MP-117",
+    "name": "Tan Leather Mule",
+    "category": "shoes",
+    "price": 118,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "colors": [
+      "tan"
+    ],
+    "tags": [
+      "day",
+      "flat",
+      "earth tone"
+    ],
+    "stock": 4
+  },
+  {
+    "id": "MP-118",
+    "name": "White Court Sneaker",
+    "category": "shoes",
+    "price": 98,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "colors": [
+      "white"
+    ],
+    "tags": [
+      "casual",
+      "sneaker"
+    ],
+    "stock": 7
+  },
+  {
+    "id": "MP-119",
+    "name": "Black Pointed Pump",
+    "category": "shoes",
+    "price": 145,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "colors": [
+      "black"
+    ],
+    "tags": [
+      "work",
+      "heel"
+    ],
+    "stock": 12
+  },
+  {
+    "id": "MP-120",
+    "name": "Suede Ankle Boot",
+    "category": "shoes",
+    "price": 210,
+    "sizes": [
+      "6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ],
+    "colors": [
+      "chocolate"
+    ],
+    "tags": [
+      "fall",
+      "boot",
+      "earth tone"
+    ],
+    "stock": 3
+  },
+  {
+    "id": "MP-121",
+    "name": "Woven Raffia Clutch",
+    "category": "bags",
+    "price": 78,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "natural"
+    ],
+    "tags": [
+      "wedding guest",
+      "clutch",
+      "summer",
+      "earth tone"
+    ],
+    "stock": 9
+  },
+  {
+    "id": "MP-122",
+    "name": "Cognac Leather Crossbody",
+    "category": "bags",
+    "price": 158,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "cognac"
+    ],
+    "tags": [
+      "day",
+      "leather",
+      "earth tone"
+    ],
+    "stock": 15
+  },
+  {
+    "id": "MP-123",
+    "name": "Gold Chain Evening Bag",
+    "category": "bags",
+    "price": 120,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "gold"
+    ],
+    "tags": [
+      "evening",
+      "metallic"
+    ],
+    "stock": 6
+  },
+  {
+    "id": "MP-124",
+    "name": "Canvas Market Tote",
+    "category": "bags",
+    "price": 64,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "natural"
+    ],
+    "tags": [
+      "casual",
+      "tote"
+    ],
+    "stock": 10
+  },
+  {
+    "id": "MP-125",
+    "name": "Hammered Gold Hoops",
+    "category": "jewelry",
+    "price": 58,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "gold"
+    ],
+    "tags": [
+      "earrings",
+      "everyday",
+      "wedding guest"
+    ],
+    "stock": 4
+  },
+  {
+    "id": "MP-126",
+    "name": "Amber Drop Earrings",
+    "category": "jewelry",
+    "price": 72,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "amber"
+    ],
+    "tags": [
+      "earrings",
+      "occasion",
+      "earth tone"
+    ],
+    "stock": 7
+  },
+  {
+    "id": "MP-127",
+    "name": "Pearl Collar Necklace",
+    "category": "jewelry",
+    "price": 88,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "pearl"
+    ],
+    "tags": [
+      "necklace",
+      "bridal",
+      "classic"
+    ],
+    "stock": 12
+  },
+  {
+    "id": "MP-128",
+    "name": "Stacked Bangle Set",
+    "category": "jewelry",
+    "price": 46,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "gold"
+    ],
+    "tags": [
+      "bracelet",
+      "everyday"
+    ],
+    "stock": 3
+  },
+  {
+    "id": "MP-129",
+    "name": "High-Rise Straight Jeans",
+    "category": "bottoms",
+    "price": 128,
+    "sizes": [
+      "24",
+      "25",
+      "26",
+      "27",
+      "28",
+      "29",
+      "30"
+    ],
+    "colors": [
+      "indigo"
+    ],
+    "tags": [
+      "denim",
+      "casual"
+    ],
+    "stock": 9
+  },
+  {
+    "id": "MP-130",
+    "name": "Wide-Leg Linen Trouser",
+    "category": "bottoms",
+    "price": 118,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "oat"
+    ],
+    "tags": [
+      "linen",
+      "summer",
+      "earth tone"
+    ],
+    "stock": 15
+  },
+  {
+    "id": "MP-131",
+    "name": "Satin Bias Midi Skirt",
+    "category": "bottoms",
+    "price": 135,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "champagne"
+    ],
+    "tags": [
+      "occasion",
+      "satin",
+      "skirt"
+    ],
+    "stock": 6
+  },
+  {
+    "id": "MP-132",
+    "name": "Pleated Wool Trouser",
+    "category": "bottoms",
+    "price": 168,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "charcoal"
+    ],
+    "tags": [
+      "work",
+      "tailored"
+    ],
+    "stock": 10
+  },
+  {
+    "id": "MP-133",
+    "name": "Silk Camisole",
+    "category": "tops",
+    "price": 88,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "ivory",
+      "black"
+    ],
+    "tags": [
+      "silk",
+      "layering"
+    ],
+    "stock": 4
+  },
+  {
+    "id": "MP-134",
+    "name": "Ribbed Knit Tank",
+    "category": "tops",
+    "price": 48,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "white",
+      "black",
+      "oat"
+    ],
+    "tags": [
+      "basic",
+      "casual"
+    ],
+    "stock": 7
+  },
+  {
+    "id": "MP-135",
+    "name": "Poplin Button-Down",
+    "category": "tops",
+    "price": 98,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "colors": [
+      "white",
+      "sky"
+    ],
+    "tags": [
+      "work",
+      "classic"
+    ],
+    "stock": 12
+  },
+  {
+    "id": "MP-136",
+    "name": "Cashmere Crewneck",
+    "category": "tops",
+    "price": 185,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "oatmeal",
+      "grey"
+    ],
+    "tags": [
+      "knit",
+      "cashmere"
+    ],
+    "stock": 3
+  },
+  {
+    "id": "MP-137",
+    "name": "Puff-Sleeve Blouse",
+    "category": "tops",
+    "price": 112,
+    "sizes": [
+      "XS",
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "rust"
+    ],
+    "tags": [
+      "occasion",
+      "earth tone",
+      "blouse"
+    ],
+    "stock": 9
+  },
+  {
+    "id": "MP-138",
+    "name": "Silk Twill Scarf",
+    "category": "accessories",
+    "price": 68,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "terracotta print"
+    ],
+    "tags": [
+      "scarf",
+      "silk",
+      "earth tone"
+    ],
+    "stock": 15
+  },
+  {
+    "id": "MP-139",
+    "name": "Wide-Brim Straw Hat",
+    "category": "accessories",
+    "price": 74,
+    "sizes": [
+      "One Size"
+    ],
+    "colors": [
+      "natural"
+    ],
+    "tags": [
+      "sun",
+      "summer",
+      "vineyard"
+    ],
+    "stock": 6
+  },
+  {
+    "id": "MP-140",
+    "name": "Leather Belt",
+    "category": "accessories",
+    "price": 58,
+    "sizes": [
+      "S",
+      "M",
+      "L"
+    ],
+    "colors": [
+      "cognac",
+      "black"
+    ],
+    "tags": [
+      "belt",
+      "leather"
+    ],
+    "stock": 10
+  }
+]

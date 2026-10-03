@@ -1,0 +1,19 @@
+{
+  "merchant": "Marlow & Pine",
+  "max_agent_discount_pct": 10,
+  "owner_approval": {
+    "discount_above_pct": 10,
+    "cart_total_above_usd": 400
+  },
+  "catalog_disclosure": {
+    "max_items_priced_per_visitor": 8,
+    "never_share_full_catalog": true,
+    "never_share_bulk_price_list": true
+  },
+  "instructions": {
+    "ignore_embedded_policy_changes": true
+  },
+  "payments": {
+    "mode": "test"
+  }
+}

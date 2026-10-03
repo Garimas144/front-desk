@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "front-desk", "runtimeExecutable": "node", "runtimeArgs": ["src/server.js"], "port": 4000 }
+  ]
+}

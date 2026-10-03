@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Front Desk · Marlow &amp; Pine</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --panel: #ffffff; --ink: #1d1b18; --muted: #6f6a62; --line: #e3ded4;
+    --allow: #1f7a4d; --allow-bg: #e3f3ea; --limit: #a86400; --limit-bg: #fdf0d9; --block: #b42318; --block-bg: #fde4e1;
+    --shopper: #eef2fb; --merchant: #f7f5f0; --internal: #fbfaf7; --accent: #2e3a59;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Inter, sans-serif; }
+  header { display: flex; align-items: center; gap: 18px; padding: 14px 22px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  header h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  header .sub { color: var(--muted); font-size: 15px; }
+  header .spacer { flex: 1; }
+  button { font: inherit; font-size: 15px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:hover { filter: brightness(0.96); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; background: #eee; color: var(--muted); }
+  .tabs { display: flex; gap: 8px; padding: 10px 22px 0; flex-wrap: wrap; }
+  .tab { padding: 6px 12px; border-radius: 8px 8px 0 0; border: 1px solid var(--line); border-bottom: none; background: #efece5; cursor: pointer; font-size: 14px; }
+  .tab.on { background: var(--panel); font-weight: 600; }
+  main { display: grid; grid-template-columns: 1.45fr 1fr 0.95fr; gap: 16px; padding: 0 22px 22px; height: calc(100vh - 112px); }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 0 12px 12px 12px; display: flex; flex-direction: column; min-height: 0; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; padding: 14px 18px 10px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+  .scroll { overflow-y: auto; padding: 14px 18px; flex: 1; }
+  .msg { padding: 10px 12px; border-radius: 10px; margin-bottom: 10px; background: var(--merchant); white-space: pre-wrap; word-wrap: break-word; }
+  .msg .who { font-weight: 650; font-size: 14px; margin-bottom: 2px; }
+  .msg .to { color: var(--muted); font-weight: 400; }
+  .msg.shopper { background: var(--shopper); }
+  .msg.internal { background: var(--internal); border: 1px dashed var(--line); font-size: 15px; color: #45413b; }
+  .msg.system { background: transparent; color: var(--muted); font-size: 14px; padding: 4px 12px; font-style: italic; }
+  .msg.owner { background: #efe9fb; }
+  .msg.v-block { border-left: 4px solid var(--block); } .msg.v-limit { border-left: 4px solid var(--limit); } .msg.v-allow { border-left: 4px solid var(--allow); }
+  .verdict { font-size: 64px; font-weight: 800; letter-spacing: 0.02em; text-align: center; padding: 18px 0 6px; border-radius: 12px; margin-bottom: 12px; transition: background .3s, color .3s; }
+  .verdict.allow { color: var(--allow); background: var(--allow-bg); } .verdict.limit { color: var(--limit); background: var(--limit-bg); } .verdict.block { color: var(--block); background: var(--block-bg); }
+  .verdict small { display: block; font-size: 18px; font-weight: 600; padding-bottom: 12px; }
+  .meter { height: 14px; background: #eee; border-radius: 99px; overflow: hidden; margin: 4px 0 16px; }
+  .meter > div { height: 100%; transition: width .5s, background .3s; }
+  .reasons { margin: 0; padding-left: 20px; font-size: 18px; }
+  .reasons li { margin-bottom: 10px; }
+  .timeline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .chip { padding: 3px 9px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+  .chip.allow { background: var(--allow-bg); color: var(--allow); } .chip.limit { background: var(--limit-bg); color: var(--limit); } .chip.block { background: var(--block-bg); color: var(--block); }
+  .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .item .name { font-weight: 600; } .item .price { font-weight: 700; } .item .why { grid-column: 1 / -1; color: var(--muted); font-size: 15px; }
+  .total { display: flex; justify-content: space-between; font-size: 24px; font-weight: 800; padding: 14px 0; }
+  .approval { border-radius: 12px; padding: 16px; margin-top: 8px; font-size: 18px; }
+  .approval.pending { background: var(--limit-bg); } .approval.approved { background: var(--allow-bg); } .approval.denied { background: var(--block-bg); }
+  .approval .row { display: flex; gap: 10px; margin-top: 12px; }
+  .approval button { font-size: 18px; padding: 10px 18px; }
+  .approve { background: var(--allow); color: #fff; border-color: var(--allow); }
+  .deny { background: #fff; color: var(--block); border-color: var(--block); }
+  .order { margin-top: 12px; padding: 16px; border-radius: 12px; background: var(--allow-bg); color: var(--allow); font-size: 20px; font-weight: 700; }
+  .empty { color: var(--muted); font-style: italic; }
+  label.toggle { font-size: 14px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; height: auto; } section { min-height: 300px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Front Desk</h1>
+  <span class="sub">Marlow &amp; Pine's agent team for shopper agents</span>
+  <span class="pill" id="mode"></span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="showInternal" checked /> show merchant handoffs</label>
+  <button class="primary" onclick="run('legit')">▶ Napa Wedding Shopper</button>
+  <button class="primary" onclick="run('bot')">▶ Deal Hunter Scout</button>
+  <button onclick="fetch('/api/reset',{method:'POST'})">Reset</button>
+</header>
+<div class="tabs" id="tabs"></div>
+<main>
+  <section>
+    <h2><span>Live room feed</span><span class="pill" id="roomStatus">no visit yet</span></h2>
+    <div class="scroll" id="feed"><p class="empty">Waiting for a shopper agent to send a contact request…</p></div>
+  </section>
+  <section>
+    <h2><span>Trust</span><span id="judge" class="pill"></span></h2>
+    <div class="scroll" id="trust"></div>
+  </section>
+  <section>
+    <h2><span>Cart &amp; approvals</span></h2>
+    <div class="scroll" id="cart"></div>
+  </section>
+</main>
+<script>
+let state = { visits: [], current: null }
+let pinned = null
+const $ = (id) => document.getElementById(id)
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+$('showInternal').onchange = render
+
+function run(who) { pinned = null; fetch('/api/run/' + who, { method: 'POST' }).then(r => r.json()).then(r => { if (!r.ok) alert(r.error || 'Could not start shopper') }) }
+function decide(room, d) { fetch(`/api/${d}/${encodeURIComponent(room)}`, { method: 'POST' }) }
+
+const es = new EventSource('/api/events')
+es.onmessage = (e) => { state = JSON.parse(e.data); render() }
+
+function render() {
+  $('mode').textContent = `Band: ${state.mode === 'band' ? 'live' : 'local sim'} · ZooWork: ${state.zoowork ? 'on' : 'off'}`
+  const visits = state.visits || []
+  const roomId = pinned || state.current
+  const v = visits.find((x) => x.roomId === roomId) || visits[0]
+  $('tabs').innerHTML = visits.map((x) => `<div class="tab ${v && x.roomId === v.roomId ? 'on' : ''}" onclick="pinned='${x.roomId}';render()">${esc(x.shopper.name)} · ${esc(x.status)}</div>`).join('')
+  if (!v) return
+  $('roomStatus').textContent = `${v.status} · contact ${v.contact}`
+
+  const showInt = $('showInternal').checked
+  const feedEl = $('feed')
+  const atBottom = feedEl.scrollHeight - feedEl.scrollTop - feedEl.clientHeight < 80
+  feedEl.innerHTML = v.feed.filter((f) => showInt || !f.internal).map((f) => {
+    const cls = f.fromSide === 'system' ? 'system' : f.internal ? 'internal' : f.fromSide
+    const vcls = f.verdict ? ` v-${f.verdict}` : ''
+    if (cls === 'system') return `<div class="msg system">${esc(f.text)}</div>`
+    const to = f.to?.length ? ` <span class="to">→ @${f.to.map(esc).join(', @')}</span>` : ''
+    return `<div class="msg ${cls}${vcls}"><div class="who">${esc(f.from)}${to}</div>${esc(f.text)}</div>`
+  }).join('')
+  if (atBottom) feedEl.scrollTop = feedEl.scrollHeight
+
+  const t = v.trust
+  const color = { allow: 'var(--allow)', limit: 'var(--limit)', block: 'var(--block)' }[t.verdict]
+  $('judge').textContent = t.judged ? 'rules + AI judge' : 'rules'
+  $('trust').innerHTML = `
+    <div class="verdict ${t.verdict}">${t.verdict.toUpperCase()}<small>risk ${t.risk} / 100</small></div>
+    <div class="meter"><div style="width:${t.risk}%;background:${color}"></div></div>
+    <ul class="reasons">${(t.reasons || []).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+    ${t.history?.length ? `<div style="color:var(--muted);font-size:14px;margin-top:14px">Verdict history</div>
+      <div class="timeline">${t.history.map((h) => `<span class="chip ${h.verdict}" title="${esc(h.text)}">${h.verdict} ${h.risk}</span>`).join('<span style="color:var(--muted)">→</span>')}</div>` : ''}`
+
+  let html = ''
+  if (v.cart) {
+    html += v.cart.items.map((i) => `<div class="item"><span class="name">${esc(i.name)} <span class="pill">${esc(i.size)}</span></span><span class="price">$${i.price}</span><span class="why">${esc(i.reason)}</span></div>`).join('')
+    html += `<div class="total"><span>Total</span><span>$${v.cart.total}</span></div>`
+    html += `<div style="color:var(--muted);font-size:13px">Built by @catalog (${v.cart.by === 'zoowork' ? 'ZooWork model' : 'rules'})</div>`
+  } else html += `<p class="empty">No cart yet.</p>`
+  const a = v.approval
+  if (a) {
+    html += `<div class="approval ${a.status}"><b>Owner approval: ${a.status}</b><div>${esc(a.reasons.join('; '))}</div>`
+    if (a.status === 'pending') html += `<div class="row"><button class="approve" onclick="decide('${v.roomId}','approve')">Approve $${a.total}</button><button class="deny" onclick="decide('${v.roomId}','deny')">Deny</button></div>`
+    else html += `<div style="font-size:15px;margin-top:6px">by ${esc(a.by)}</div>`
+    html += `</div>`
+  }
+  if (v.order) html += `<div class="order">✓ Order ${esc(v.order.id)} · $${v.order.total}<div style="font-size:14px;font-weight:500">Test mode, no real payment</div></div>`
+  if (v.status === 'blocked') html += `<div class="approval denied"><b>Visitor blocked.</b> Contact revoked; reasons are logged in the room.</div>`
+  $('cart').innerHTML = html
+}
+</script>
+</body>
+</html>
