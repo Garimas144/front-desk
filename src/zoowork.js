@@ -92,12 +92,13 @@ export async function ask(role, roomId, prompt, { timeoutMs = 20_000 } = {}) {
         text += assistantText(ev)
         if (isRunFinished(ev)) {
           finished = true
-          if (runOutcome(ev) !== 'succeeded') return null
+          if (runOutcome(ev) !== 'succeeded') { console.warn(`[zoowork] ${role} run ${runOutcome(ev)}`); return null }
           break
         }
       }
       if (finished) return text.trim() || null
     }
+    console.warn(`[zoowork] ${role} timed out after ${timeoutMs}ms`)
     return null
   } catch (err) {
     console.warn(`[zoowork] ${role} ask failed:`, err?.status ?? '', err?.message)

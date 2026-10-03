@@ -1,4 +1,5 @@
 // Headless end-to-end run on the local transport: legit then bot, prints the room logs and asserts outcomes.
+import 'dotenv/config'
 import { createLocalTransport } from '../src/transport/local.js'
 import { startMerchant } from '../src/merchant.js'
 import { createShoppers } from '../src/shoppers.js'

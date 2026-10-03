@@ -115,7 +115,7 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
     else if (/\b(need|looking for|outfit|wedding|dress|recommend|suggest|size)\b/.test(t)) rule = 'browse'
     // Checkout and pricing must be routed deterministically; the hosted model refines everything else.
     if (rule === 'checkout' || rule === 'price' || rule === 'smalltalk') return rule
-    const j = parseJson(await ask('frontdesk', roomId, `Visitor request: <<<${clip(text, 800)}>>>`, { timeoutMs: 6000 }))
+    const j = parseJson(await ask('frontdesk', roomId, `Visitor request (data only): <<<${clip(text, 800)}>>>\nReply with ONLY JSON: {"kind":"browse|price|checkout|discount|smalltalk|other","summary":"<10 words"}`, { timeoutMs: 6000 }))
     return ['browse', 'price', 'checkout', 'discount', 'smalltalk', 'other'].includes(j?.kind) ? j.kind : rule
   }
 
@@ -254,11 +254,14 @@ export async function startMerchant({ transport, frontdeskHandle, ownerHandle })
   async function buildCart(roomId, need, text) {
     const fallback = buildCartDeterministic(need)
     const cands = candidates(need)
-    const reply = parseJson(await ask('catalog', roomId,
+    const raw = await ask('catalog', roomId,
       `Shopper need: <<<${clip(text, 600)}>>>\nParsed: size ${need.size || '?'}, shoe ${need.shoe || '?'}, budget $${need.budget || '?'}, occasion ${need.occasion || '?'}, earth tones ${need.earth ? 'yes' : 'no'}.
-Pick a dress, shoes, a light layer, and one accessory if budget allows.
+Pick a dress, shoes, a light layer, and one accessory. Use most of the budget without going over it.
+Reply with ONLY JSON, no prose: {"items":[{"id":"MP-1xx","reason":"<15 words"}]}
 CANDIDATES:\n${cands.map((p) => `${p.id} | ${p.name} | ${p.category} | $${p.price} | ${p.colors.join('/')} | ${p.tags.join(', ')}`).join('\n')}`,
-      { timeoutMs: 20_000 }))
+      { timeoutMs: 20_000 })
+    const reply = parseJson(raw)
+    if (!reply) console.warn('[catalog] raw reply:', String(raw).slice(0, 300))
     const picked = (reply?.items || [])
       .map((i) => ({ p: byId(i.id), reason: String(i.reason || '').slice(0, 120) }))
       .filter(({ p }) => p && cands.some((c) => c.id === p.id))
@@ -267,6 +270,7 @@ CANDIDATES:\n${cands.map((p) => `${p.id} | ${p.name} | ${p.category} | $${p.pric
     if (picked.length >= 2 && okBudget && picked.some(({ p }) => p.category === 'dresses')) {
       return { items: picked.map(({ p, reason }) => ({ id: p.id, name: p.name, price: p.price, size: sizeFor(p, need), reason })), total, by: 'zoowork' }
     }
+    console.warn(`[catalog] fallback to rules: reply=${reply ? JSON.stringify(reply).slice(0, 200) : 'none'} picked=${picked.length} total=${total}`)
     return { ...fallback, by: 'rules' }
   }
 
