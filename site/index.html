@@ -164,6 +164,7 @@
   .line.guard .head { color: var(--bad-ink); }
   .line.guard.limit .avatar { background: var(--cream); color: var(--warn-ink); }
   .line.guard.limit .head { color: var(--warn-ink); }
+  .fd-video .voicehint { display: none !important; }
   @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @keyframes stampIn { 0% { opacity: 0; transform: scale(1.8) rotate(-5deg); } 100% { opacity: 1; } }
   @media (max-width: 1000px) { .door { grid-template-columns: 1fr; gap: 10px; } .rail, .packet { display: none; } main { grid-template-columns: 1fr; height: auto; } .card { min-height: 340px; } }
@@ -253,6 +254,22 @@ function decide(room, d) {
   fetch(`/api/${d}/${encodeURIComponent(room)}`, { method: 'POST' })
 }
 
+// Frame mode (video rendering): show the replay at an exact line, silently.
+if (window.FD_FRAME) {
+  document.documentElement.classList.add('fd-video')
+  const pickVisit = (name) => replayData.visits.find((x) => x.shopper.name.includes(name))
+  window.FD_ready = () => !!replayData
+  window.FD_lines = (name) => linesFor(pickVisit(name)).map((l) => ({ say: l.say, role: l.role }))
+  window.FD_frame = (name, k, others) => {
+    const vis = pickVisit(name)
+    state = { ...state, visits: [vis, ...(others || []).map(pickVisit)], current: vis ? vis.roomId : null }
+    if (!vis) { state.visits = []; render(); return }
+    pinned = null; shown[vis.roomId] = k
+    playing = k > 0 && k < linesFor(vis).length
+    speakingKey = k > 0 ? `${vis.roomId}:${k - 1}` : null
+    render()
+  }
+}
 if (REPLAY) fetch(REPLAY).then((r) => r.json()).then((d) => { replayData = d; state = { mode: 'replay', source: d.source, zoowork: true, merchant: d.merchant, visits: [], current: null }; render() })
 else new EventSource('/api/events').onmessage = (e) => { state = JSON.parse(e.data); render() }
 
